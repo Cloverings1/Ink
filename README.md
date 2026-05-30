@@ -1,91 +1,169 @@
-# Ink — Floating Notes for macOS
+<div align="center">
 
-Beautiful, zero-friction note-taking app with a global hotkey that summons a gorgeous floating panel anywhere on your Mac. Notes are plain Markdown files you own.
+<img src=".github/assets/banner.svg" width="100%" alt="Ink — Floating notes for macOS"/>
 
-## Status
-This is the complete scaffolded source for the **Ink** macOS app following the approved implementation plan.
+<br/><br/>
 
-All core to-dos are being implemented here.
+<img src=".github/assets/icon.png" width="112" alt="Ink app icon"/>
 
-## App Icon (May 2026)
-We are using a gorgeous **liquid glass / frosted** icon (originally styled after Pocket Casts' beautiful aesthetic).
+# Ink
 
-- Master file: `Ink/Resources/Icons/Ink.icns` (1.2 MB, contains all required sizes)
-- Xcode asset catalog: fully populated in `Ink/Resources/Assets.xcassets/AppIcon.appiconset/`
+**Instant floating notes. Plain Markdown. You own every file.**
 
-This icon will appear in the menu bar, Dock (if you later allow it), Finder, and the app switcher. It looks fantastic on both light and dark wallpapers.
+<br/>
 
-## Build for Testing Right Now
+[![macOS](https://img.shields.io/badge/macOS-14.0+-000000?style=for-the-badge&logo=apple&logoColor=white)](https://www.apple.com/macos/)
+[![Swift](https://img.shields.io/badge/Swift-6-FA7343?style=for-the-badge&logo=swift&logoColor=white)](https://swift.org)
+[![SwiftUI](https://img.shields.io/badge/SwiftUI-+-007AFF?style=for-the-badge&logo=swift&logoColor=white)](https://developer.apple.com/xcode/swiftui/)
+[![License](https://img.shields.io/badge/License-MIT-8e8e93?style=for-the-badge)](LICENSE)
 
-You already have everything ready (including the beautiful icon). Here's the fastest path to a working test build:
+<br/>
 
-1. Open Xcode → **Create a new Project** → **macOS** → **App**
-2. Name: `Ink`, Interface: SwiftUI, Language: Swift. Uncheck Core Data and tests.
-3. Save it inside the `Ink/` folder (next to the existing `Ink/` source group).
-4. Delete the default `InkApp.swift`, `ContentView.swift`, and the placeholder `Assets.xcassets` that Xcode generated.
-5. Drag the `Ink/` folder (the one containing `InkApp.swift`, `Core/`, `UI/`, `Resources/`, etc.) from this repo into your Xcode project navigator. Choose "Create groups" and add to the Ink target.
-6. Add the KeyboardShortcuts package (see step 10 below).
-7. In the target settings:
-   - **General** → Deployment Target: macOS 14.0+
-   - **Info** tab:
-     - Add `LSUIElement` (Boolean) = `YES`
-     - Add a URL Type with scheme `ink`
-   - **Build Settings** → "Asset Catalog Compiler - Options" → **App Icon** should already point to `AppIcon`
-8. Select the `Ink` target → **Build Phases** → make sure `Assets.xcassets` is included.
-9. Press **⌘R**.
+[Features](#-features) · [Demo](#-demo) · [Shortcuts](#-shortcuts) · [Get Started](#-get-started) · [Structure](#-structure)
 
-You should see:
-- No main window on launch (correct for an agent-style app)
-- The gorgeous liquid glass icon in the menu bar
-- Press ⌘N and the floating panel appears with the icon visible in the app switcher / menu bar
+</div>
 
-## How to Set Up the Xcode Project (Required)
+<img src=".github/assets/divider.svg" width="100%" alt=""/>
 
-Because a full `.xcodeproj` is a binary package, follow these 5 minutes steps to get a buildable native macOS app:
+<br/>
 
-1. Open **Xcode** (16+ recommended) → **Create a new Xcode project**.
-2. Choose **macOS** → **App** → **SwiftUI** interface, **Swift** language.
-3. Product Name: **Ink**
-4. Organization Identifier: e.g. `com.yourname`
-5. Interface: **SwiftUI**
-6. Language: **Swift**
-7. **Uncheck** "Use Core Data", "Include Tests" for now (you can add later).
-8. Save the project into this repo's `Ink/` folder (or anywhere; the files below are the content of the `Ink/` group).
+## ✦ Demo
 
-9. **Replace the generated files** with the ones in this repo's `Ink/` folder (copy the Swift files into the project navigator, replacing `InkApp.swift` etc.).
+<p align="center">
+  <img src=".github/assets/panel-demo.svg" width="92%" alt="Animated Ink floating panel mockup"/>
+</p>
 
-10. **Add the KeyboardShortcuts dependency** (critical for global hotkeys):
-    - In Xcode: File → Add Package Dependencies…
-    - Paste: `https://github.com/sindresorhus/KeyboardShortcuts`
-    - Version: Up to Next Major (or latest 2.x)
-    - Add to the Ink target.
+<p align="center">
+  <sub>Summon a frosted panel over any app, any Space, even fullscreen — start typing in milliseconds.</sub>
+</p>
 
-11. **Configure the target** for a floating panel app (agent-like):
-    - Select the Ink target → General → Deployment Target: macOS 14.0 (Sonoma) or later.
-    - Info tab:
-      - Add `LSUIElement` (Boolean) = `YES`  (no Dock icon by default — pure hotkey + menu bar experience)
-      - Add URL scheme: `URL Types` → Item 0 → URL Schemes → `ink`
-    - Build Settings → Other Linker Flags (if needed, usually not).
+<img src=".github/assets/divider.svg" width="100%" alt=""/>
 
-12. **Capabilities** (for future):
-    - Later: App Sandbox + User Selected Files (read/write) if you want strict sandboxing. For v1 we start without heavy sandbox to allow easy folder access.
+<br/>
 
-13. **Assets**:
-    - The beautiful liquid glass app icon is **already prepared** for you.
-    - Just make sure the folder `Ink/Resources/Assets.xcassets/AppIcon.appiconset/` (with all the PNGs and the updated `Contents.json`) gets copied into your Xcode project.
-    - The master `Ink.icns` is also ready at `Resources/Icons/Ink.icns` if you ever want to reference it directly.
+## ✦ Features
 
-14. Build & Run (⌘R). The app should launch with no main window (because of LSUIElement).
+<table>
+<tr>
+<td width="50%" valign="top">
 
-## Running Ink
-- Press the registered global hotkey (default: **⌘N** for Create Note — customizable later).
-- The floating panel appears instantly over any app, any Space, fullscreen.
-- Type Markdown. Use the bottom toolbar.
-- ⌘P to browse/search notes.
-- ⌘K for the full Action Panel (command palette).
-- Esc or click outside to dismiss (just like Spotlight).
+### ⚡ Zero friction
 
-## Project Structure (after copying files)
+Global hotkey → floating panel appears instantly. No context switch. No Dock icon required. Dismiss with **Esc** or click outside.
+
+### 🪟 Native floating panel
+
+Built on `NSPanel` with `.nonactivatingPanel` — stays above your work without stealing app activation.
+
+### ⌨️ Customizable shortcuts
+
+All primary commands register through **[KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts)** so users can remap keys.
+
+</td>
+<td width="50%" valign="top">
+
+### 📝 Plain Markdown
+
+Raw Markdown editing with a bottom toolbar that **inserts syntax** — not a WYSIWYG layer. What you see is what’s on disk.
+
+### 📁 Files you own
+
+Notes live as individual `.md` files (default: `~/Library/Application Support/Ink/Notes`). Open them in Obsidian, VS Code, BBEdit, or git.
+
+### 🔍 Instant search
+
+In-memory title + content index for fast browse/search — no database lock-in in v1.
+
+</td>
+</tr>
+</table>
+
+<img src=".github/assets/divider.svg" width="100%" alt=""/>
+
+<br/>
+
+## ✦ Shortcuts
+
+<p align="center">
+
+| Action | Default | What it does |
+|:--|:--:|:--|
+| **Create note** | `⌘N` | Opens the editor with a fresh note |
+| **Browse / toggle** | `⌘P` | Search and switch notes |
+| **Action panel** | `⌘K` | Command palette for all actions |
+| **Dismiss** | `Esc` | Hide the panel (Spotlight-style) |
+
+</p>
+
+<img src=".github/assets/divider.svg" width="100%" alt=""/>
+
+<br/>
+
+## ✦ Get Started
+
+### Quick build (~5 min)
+
+```bash
+git clone https://github.com/Cloverings1/Ink.git
+cd Ink
+```
+
+1. Open **Xcode** → **Create a new Project** → **macOS** → **App**
+2. Name: **Ink** · Interface: **SwiftUI** · Language: **Swift**
+3. Save inside the repo’s `Ink/` folder
+4. Delete Xcode’s default `InkApp.swift`, `ContentView.swift`, and placeholder assets
+5. Drag the repo’s `Ink/` source folder into the project navigator (**Create groups**, add to target)
+6. Add package dependency: `https://github.com/sindresorhus/KeyboardShortcuts`
+7. Configure the target:
+   - **Deployment Target:** macOS 14.0+
+   - **Info → `LSUIElement`:** `YES`
+   - **URL Types → Schemes:** `ink`
+8. Press **⌘R**
+
+You should get a menu bar extra, no main window, and **⌘N** summoning the panel.
+
+<details>
+<summary><strong>Full Xcode setup checklist</strong></summary>
+
+<br/>
+
+**Project creation**
+- Xcode 16+ recommended
+- Product Name: **Ink**
+- Organization Identifier: e.g. `com.yourname`
+- Uncheck Core Data and tests for now
+
+**Replace generated files**
+- Copy all Swift sources from this repo’s `Ink/` folder into your project
+
+**KeyboardShortcuts (required)**
+- File → Add Package Dependencies…
+- URL: `https://github.com/sindresorhus/KeyboardShortcuts`
+- Version: Up to Next Major (2.x)
+- Add to the Ink target
+
+**Target configuration**
+- General → Deployment Target: macOS 14.0 (Sonoma)+
+- Info → `LSUIElement` = `YES` (agent-style app, no Dock icon by default)
+- Info → URL Types → Item 0 → URL Schemes → `ink`
+- Ensure `Ink/Resources/Assets.xcassets` is in **Build Phases → Copy Bundle Resources**
+- App Icon should point to `AppIcon` in asset catalog
+
+**Assets**
+- App icon is pre-built in `Ink/Resources/Assets.xcassets/AppIcon.appiconset/`
+- Master `.icns` at `Ink/Resources/Icons/Ink.icns`
+
+**Build & run**
+- ⌘R — app launches with no main window (expected)
+- Press ⌘N to verify the floating panel
+
+</details>
+
+<img src=".github/assets/divider.svg" width="100%" alt=""/>
+
+<br/>
+
+## ✦ Structure
 
 ```
 Ink/
@@ -100,50 +178,44 @@ Ink/
 │   ├── Browse/NotesBrowserView.swift
 │   ├── FloatingPanel/
 │   │   ├── FloatingNotePanel.swift
-│   │   └── FloatingPanelController.swift
+│   │   ├── FloatingPanelController.swift
+│   │   └── FloatingPanelRootView.swift
 │   └── CommandPalette/ActionPanelView.swift
 ├── Resources/
 │   ├── Assets.xcassets/
 │   └── Icons/Ink.icns
 ├── Info.plist
-├── Ink.entitlements
-├── project.yml
-├── README.md
-├── AGENTS.md
-├── CLAUDE.md
-└── Ink.xcodeproj/          ← generated by xcodegen
+└── Ink.entitlements
 ```
 
-## Key Design Decisions Implemented
-- **Pure native Swift + SwiftUI + AppKit (NSPanel)**: Delivers an instant, non-activating floating panel over any app.
-- **Plain .md files**: Stored in `~/Library/Application Support/Ink/Notes` (user can change in Settings). Fully portable, git-friendly, searchable by any tool.
-- **Plain text Markdown editing** with toolbar that inserts syntax (matches your screenshots exactly).
-- **No heavy dependencies** except KeyboardShortcuts for user-customizable global hotkeys.
-- **In-memory search index** for instant title + content search (no DB in v1).
+<img src=".github/assets/divider.svg" width="100%" alt=""/>
 
-## Next Steps After Setup
-The scaffold includes:
-- Working floating panel + hotkey (toggle + create).
-- Editor with formatting toolbar.
-- File-backed NoteStore with auto-save.
-- Browse list + search.
-- Action palette (⌘K).
-- Basic settings and deeplink support.
+<br/>
 
-Run through the phases in the plan by building incrementally.
+## ✦ Design principles
 
-## Distribution (future)
-- Direct .app downloads (notarize).
-- Homebrew cask.
-- (Optional) Mac App Store with proper sandboxing + entitlements.
+| Principle | Implementation |
+|:--|:--|
+| **Instant** | Global hotkey + non-activating `NSPanel` |
+| **Native** | SwiftUI + AppKit, frosted HUD window material |
+| **Portable** | Plain `.md` files on disk, debounced auto-save |
+| **Lightweight** | One dependency (`KeyboardShortcuts`) for hotkeys |
+| **Searchable** | In-memory index, no SQLite in v1 |
 
-## Screenshots Reference
-The UI is built to exactly match the aesthetic and layout in the six screenshots you provided (dark theme, frosted panel, bottom toolbar, browse list with metadata, action panel with keyboard shortcuts shown).
+<img src=".github/assets/divider.svg" width="100%" alt=""/>
 
-## Questions / Feedback
-Open an issue or just edit the code. This is your app — make it perfect.
+<br/>
 
-Built with love for frictionless thinking on macOS.
+<div align="center">
 
-## License
-MIT — you own your notes and your code.
+### Built for frictionless thinking on macOS.
+
+<br/>
+
+**MIT License** — you own your notes and your code.
+
+<br/>
+
+<sub>If Ink saves you a thought, star the repo ⭐</sub>
+
+</div>
