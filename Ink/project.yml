@@ -1,0 +1,103 @@
+name: Ink
+options:
+  bundleIdPrefix: com.jonasbubela
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  indentWidth: 4
+  tabWidth: 4
+
+packages:
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts
+    from: "2.0.0"
+
+targets:
+  Ink:
+    type: application
+    platform: macOS
+    sources:
+      - path: InkApp.swift
+      - path: App
+      - path: Core
+      - path: UI
+      - path: Resources
+        buildPhase: resources
+    dependencies:
+      - package: KeyboardShortcuts
+    settings:
+      base:
+        PRODUCT_NAME: Ink
+        PRODUCT_BUNDLE_IDENTIFIER: com.jonasbubela.Ink
+        MARKETING_VERSION: "1.1"
+        CURRENT_PROJECT_VERSION: "2"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_VERSION: "6.0"
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_HARDENED_RUNTIME: YES
+        # Agent-style app (no Dock icon)
+        INFOPLIST_KEY_LSUIElement: YES
+    info:
+      path: Info.plist
+      properties:
+        CFBundleName: Ink
+        CFBundleShortVersionString: "1.1"
+        CFBundleVersion: "2"
+        LSUIElement: true
+        CFBundleURLTypes:
+          - CFBundleURLName: Ink Deeplink
+            CFBundleURLSchemes:
+              - ink
+    entitlements:
+      path: Ink.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+        com.apple.security.files.user-selected.read-write: true
+
+    # Post-build script: automatically copies the signed Release build
+    # into the test artifacts folder the user requested.
+    postBuildScripts:
+      - name: "Copy Release Build to Test Folder"
+        script: |
+          if [ "${CONFIGURATION}" = "Release" ]; then
+            # Portable path (relative to the project) so no absolute user paths
+            # leak into the public repo.
+            DEST_DIR="${SRCROOT}/../Ink Builds/Ink builds/${MARKETING_VERSION}"
+            DEST_APP="$DEST_DIR/Ink-${MARKETING_VERSION}.app"
+
+            mkdir -p "$DEST_DIR"
+            rm -rf "$DEST_APP"
+
+            cp -R "${BUILT_PRODUCTS_DIR}/Ink.app" "$DEST_APP"
+
+            # If the build wasn't signed with a real Developer ID/team, apply an
+            # ad-hoc signature so the copied app launches locally without the
+            # "damaged or incomplete" Gatekeeper error.
+            if ! codesign -dv "$DEST_APP" >/dev/null 2>&1; then
+              codesign --force --deep --sign - "$DEST_APP" || true
+            fi
+            xattr -dr com.apple.quarantine "$DEST_APP" 2>/dev/null || true
+
+            echo "✅ Successfully copied build to:"
+            echo "   $DEST_APP"
+            echo ""
+            echo "You can now launch it from that location."
+          fi
+        outputFiles: []
+
+schemes:
+  Ink:
+    build:
+      targets:
+        Ink: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+      customArchiveName: "Ink 1.1"
