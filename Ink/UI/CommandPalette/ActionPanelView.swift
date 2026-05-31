@@ -9,29 +9,31 @@ struct ActionPanelView: View {
     @EnvironmentObject var controller: FloatingPanelController
 
     @State private var filter: String = ""
+    @State private var selectedCommandIndex = 0
+    @FocusState private var isFilterFocused: Bool
     let onDismiss: () -> Void
 
     private var commands: [Command] {
         let all: [Command] = [
-            Command(title: "New Note", subtitle: nil, shortcut: "⌥⌘N", action: {
+            Command(id: "new", title: "New Note", subtitle: nil, shortcut: "⌥⌘N", isEnabled: true, action: {
                 if noteStore.createNewNote() != nil {
                     controller.showEditor()
                 }
                 onDismiss()
             }),
-            Command(title: "Browse Notes", subtitle: nil, shortcut: "⌥⌘P", action: {
+            Command(id: "browse", title: "Browse Notes", subtitle: nil, shortcut: "⌥⌘P", isEnabled: true, action: {
                 controller.showBrowse()
                 onDismiss()
             }),
-            Command(title: "Copy Note As...", subtitle: nil, shortcut: "⇧⌘C", action: {
+            Command(id: "copy", title: "Copy Note As...", subtitle: nil, shortcut: "⇧⌘C", isEnabled: noteStore.currentNote != nil, action: {
                 copyCurrentNote()
                 onDismiss()
             }),
-            Command(title: "Copy Deeplink", subtitle: nil, shortcut: "⇧⌘D", action: {
+            Command(id: "deeplink", title: "Copy Deeplink", subtitle: nil, shortcut: "⇧⌘D", isEnabled: noteStore.currentNote != nil, action: {
                 copyDeeplink()
                 onDismiss()
             }),
-            Command(title: "Export...", subtitle: nil, shortcut: "⇧⌘E", action: {
+            Command(id: "export", title: "Export...", subtitle: nil, shortcut: "⇧⌘E", isEnabled: noteStore.currentNote != nil, action: {
                 exportCurrentNote()
                 onDismiss()
             })
@@ -51,6 +53,10 @@ struct ActionPanelView: View {
                 TextField("Search for actions...", text: $filter)
                     .textFieldStyle(.plain)
                     .font(.system(size: 15))
+                    .focused($isFilterFocused)
+                    .onSubmit {
+                        runSelectedCommand()
+                    }
             }
             .padding(12)
             .background(.black.opacity(0.3))
@@ -62,7 +68,7 @@ struct ActionPanelView: View {
 
             ScrollView {
                 VStack(spacing: 0) {
-                    ForEach(commands) { cmd in
+                    ForEach(Array(commands.enumerated()), id: \.element.id) { index, cmd in
                         Button {
                             cmd.action()
                         } label: {
@@ -87,9 +93,16 @@ struct ActionPanelView: View {
                             .padding(.vertical, 8)
                             .padding(.horizontal, 12)
                             .contentShape(Rectangle())
+                            .background(index == selectedCommandIndex ? Color.white.opacity(0.10) : Color.clear)
                         }
                         .buttonStyle(.plain)
-                        .onHover { _ in }   // keeps hover highlight nice
+                        .disabled(!cmd.isEnabled)
+                        .opacity(cmd.isEnabled ? 1 : 0.45)
+                        .onHover { hovering in
+                            if hovering {
+                                selectedCommandIndex = index
+                            }
+                        }
 
                         if cmd.id != commands.last?.id {
                             Divider()
@@ -104,12 +117,83 @@ struct ActionPanelView: View {
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .shadow(color: .black.opacity(0.4), radius: 20, y: 10)
+        .onAppear {
+            clampSelection()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                isFilterFocused = true
+            }
+        }
+        .onChange(of: filter) { _, _ in
+            selectedCommandIndex = 0
+            clampSelection()
+        }
+        .onChange(of: commands.count) { _, _ in
+            clampSelection()
+        }
+        .onMoveCommand { direction in
+            moveSelection(direction)
+        }
         .onExitCommand {
             onDismiss()
         }
+        .background(shortcutButtons.hidden())
     }
 
     // MARK: - Command implementations
+
+    private var shortcutButtons: some View {
+        Group {
+            Button("") {
+                copyCurrentNote()
+                onDismiss()
+            }
+            .keyboardShortcut("c", modifiers: [.shift, .command])
+            .disabled(noteStore.currentNote == nil)
+
+            Button("") {
+                copyDeeplink()
+                onDismiss()
+            }
+            .keyboardShortcut("d", modifiers: [.shift, .command])
+            .disabled(noteStore.currentNote == nil)
+
+            Button("") {
+                exportCurrentNote()
+                onDismiss()
+            }
+            .keyboardShortcut("e", modifiers: [.shift, .command])
+            .disabled(noteStore.currentNote == nil)
+        }
+    }
+
+    private func moveSelection(_ direction: MoveCommandDirection) {
+        let availableCommands = commands
+        guard !availableCommands.isEmpty else { return }
+
+        switch direction {
+        case .up:
+            selectedCommandIndex = max(selectedCommandIndex - 1, 0)
+        case .down:
+            selectedCommandIndex = min(selectedCommandIndex + 1, availableCommands.count - 1)
+        default:
+            break
+        }
+    }
+
+    private func runSelectedCommand() {
+        guard commands.indices.contains(selectedCommandIndex) else { return }
+        let command = commands[selectedCommandIndex]
+        guard command.isEnabled else { return }
+        command.action()
+    }
+
+    private func clampSelection() {
+        if commands.isEmpty {
+            selectedCommandIndex = 0
+        } else {
+            selectedCommandIndex = min(selectedCommandIndex, commands.count - 1)
+        }
+    }
 
     private func copyCurrentNote() {
         guard let note = noteStore.currentNote else { return }
@@ -149,9 +233,10 @@ struct ActionPanelView: View {
 }
 
 struct Command: Identifiable {
-    let id = UUID()
+    let id: String
     let title: String
     let subtitle: String?
     let shortcut: String
+    let isEnabled: Bool
     let action: () -> Void
 }

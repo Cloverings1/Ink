@@ -72,6 +72,9 @@ final class FloatingPanelController: ObservableObject {
         isActionPanelPresented = false
         mode = .browse
         ensurePanelExistsAndShow()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            NotificationCenter.default.post(name: .focusBrowseSearch, object: nil)
+        }
     }
 
     /// Creates a fresh note and immediately shows the editor.
@@ -107,6 +110,8 @@ final class FloatingPanelController: ObservableObject {
         isActionPanelPresented = false
         if mode == .editor {
             NotificationCenter.default.post(name: .focusEditor, object: nil)
+        } else {
+            NotificationCenter.default.post(name: .focusBrowseSearch, object: nil)
         }
     }
 
@@ -196,4 +201,5 @@ final class FloatingPanelController: ObservableObject {
 // MARK: - Notification for focusing the editor from SwiftUI
 extension Notification.Name {
     static let focusEditor = Notification.Name("Ink.FocusEditor")
+    static let focusBrowseSearch = Notification.Name("Ink.FocusBrowseSearch")
 }
