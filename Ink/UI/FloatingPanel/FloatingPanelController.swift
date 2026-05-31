@@ -117,6 +117,7 @@ final class FloatingPanelController: ObservableObject {
     // MARK: - Internal panel lifecycle
 
     private func ensurePanelExistsAndShow() {
+        noteStore.reconcileExternalChanges()
         if panel == nil {
             createPanel()
         }

@@ -106,4 +106,96 @@ final class NoteStoreTests: XCTestCase {
         XCTAssertTrue(store.notes.isEmpty)
         XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.appendingPathComponent("Ink").path))
     }
+
+    func testCleanExternalEditReloadsWithoutOverwrite() throws {
+        let store = NoteStore(notesDirectory: tempRoot)
+        let note = try XCTUnwrap(store.createNewNote())
+        store.updateCurrentNoteContent("# Original\nInk content")
+        store.flushPendingSaves()
+
+        try "# External\nEdited elsewhere".write(to: note.fileURL, atomically: true, encoding: .utf8)
+        store.reconcileExternalChanges()
+
+        XCTAssertEqual(store.currentNote?.content, "# External\nEdited elsewhere")
+        XCTAssertEqual(store.currentNote?.title, "External")
+        XCTAssertEqual(try String(contentsOf: note.fileURL, encoding: .utf8), "# External\nEdited elsewhere")
+        XCTAssertEqual(store.searchNotes(query: "elsewhere").first?.id, note.id)
+    }
+
+    func testPendingInkEditDoesNotOverwriteExternalEdit() throws {
+        let store = NoteStore(notesDirectory: tempRoot)
+        let note = try XCTUnwrap(store.createNewNote())
+        store.updateCurrentNoteContent("Baseline")
+        store.flushPendingSaves()
+
+        try "External edit".write(to: note.fileURL, atomically: true, encoding: .utf8)
+        store.updateCurrentNoteContent("Ink local edit")
+        store.flushPendingSaves()
+
+        XCTAssertEqual(try String(contentsOf: note.fileURL, encoding: .utf8), "External edit")
+
+        let markdownFiles = try FileManager.default.contentsOfDirectory(
+            at: tempRoot,
+            includingPropertiesForKeys: nil
+        )
+        .filter { $0.pathExtension == "md" }
+
+        XCTAssertEqual(markdownFiles.count, 2)
+        XCTAssertTrue(markdownFiles.contains { $0.lastPathComponent.contains("Ink conflict") })
+        XCTAssertTrue(markdownFiles.contains { (try? String(contentsOf: $0, encoding: .utf8)) == "Ink local edit" })
+        XCTAssertEqual(store.currentNote?.content, "Ink local edit")
+    }
+
+    func testExternalNewMarkdownFileAppearsAfterReconcile() throws {
+        let store = NoteStore(notesDirectory: tempRoot)
+        XCTAssertTrue(store.notes.isEmpty)
+
+        let external = tempRoot.appendingPathComponent("from-obsidian.md")
+        try "# Imported\nExternal content".write(to: external, atomically: true, encoding: .utf8)
+
+        store.reconcileExternalChanges()
+
+        XCTAssertEqual(store.notes.count, 1)
+        XCTAssertEqual(store.notes.first?.fileURL.lastPathComponent, "from-obsidian.md")
+        XCTAssertEqual(
+            store.searchNotes(query: "imported").first?.fileURL.standardizedFileURL,
+            external.standardizedFileURL
+        )
+    }
+
+    func testExternalDeletionRemovesCleanNote() throws {
+        let store = NoteStore(notesDirectory: tempRoot)
+        let note = try XCTUnwrap(store.createNewNote())
+        store.updateCurrentNoteContent("Will be deleted elsewhere")
+        store.flushPendingSaves()
+
+        try FileManager.default.removeItem(at: note.fileURL)
+        store.reconcileExternalChanges()
+
+        XCTAssertTrue(store.notes.isEmpty)
+        XCTAssertNil(store.currentNoteID)
+    }
+
+    func testExternalDeletionPreservesDirtyNoteAsConflictCopy() throws {
+        let store = NoteStore(notesDirectory: tempRoot)
+        let note = try XCTUnwrap(store.createNewNote())
+        store.updateCurrentNoteContent("Baseline")
+        store.flushPendingSaves()
+
+        try FileManager.default.removeItem(at: note.fileURL)
+        store.updateCurrentNoteContent("Unsaved Ink content")
+        store.flushPendingSaves()
+
+        let markdownFiles = try FileManager.default.contentsOfDirectory(
+            at: tempRoot,
+            includingPropertiesForKeys: nil
+        )
+        .filter { $0.pathExtension == "md" }
+
+        XCTAssertEqual(markdownFiles.count, 1)
+        let conflict = try XCTUnwrap(markdownFiles.first)
+        XCTAssertTrue(conflict.lastPathComponent.contains("Ink conflict"))
+        XCTAssertEqual(try String(contentsOf: conflict, encoding: .utf8), "Unsaved Ink content")
+        XCTAssertEqual(store.currentNote?.fileURL.standardizedFileURL, conflict.standardizedFileURL)
+    }
 }

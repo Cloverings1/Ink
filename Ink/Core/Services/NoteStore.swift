@@ -23,6 +23,7 @@ final class NoteStore: ObservableObject {
     private let fileManager: FileManager
     private var pendingSaveWorkItems: [UUID: DispatchWorkItem] = [:]
     private var pendingSaveSnapshots: [UUID: Note] = [:]
+    private var lastKnownDiskContent: [UUID: String] = [:]
 
     private static let logger = Logger(subsystem: "com.jonasbubela.Ink", category: "NoteStore")
     private static let notesDirectoryKey = "notesDirectoryPath"
@@ -71,14 +72,16 @@ final class NoteStore: ObservableObject {
         }
 
         notes.append(note)
+        lastKnownDiskContent[note.id] = note.content
         rebuildSearchIndex()
         currentNoteID = note.id
         return note
     }
 
     func selectNote(id: UUID) {
-        guard notes.contains(where: { $0.id == id }) else { return }
         flushPendingSave(for: currentNoteID)
+        reconcileExternalChanges()
+        guard notes.contains(where: { $0.id == id }) else { return }
         currentNoteID = id
     }
 
@@ -111,6 +114,7 @@ final class NoteStore: ObservableObject {
         }
 
         notes.remove(at: idx)
+        lastKnownDiskContent[id] = nil
         rebuildSearchIndex()
 
         if currentNoteID == id {
@@ -161,43 +165,55 @@ final class NoteStore: ObservableObject {
     }
 
     func loadNotes() throws {
-        flushPendingSaves()
-        try Self.ensureDirectoryExists(at: notesDirectory, fileManager: fileManager)
-
-        let urls = try fileManager.contentsOfDirectory(
-            at: notesDirectory,
-            includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
-            options: [.skipsHiddenFiles]
-        )
-        .filter { $0.pathExtension.lowercased() == "md" }
-
-        var loaded: [Note] = []
-
-        for url in urls {
-            do {
-                let content = try String(contentsOf: url, encoding: .utf8)
-                let attrs = try? url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
-
-                let note = Note(
-                    id: noteID(for: url),
-                    title: Note.deriveTitle(from: content),
-                    content: content,
-                    fileURL: url,
-                    createdAt: attrs?.creationDate ?? Date(),
-                    updatedAt: attrs?.contentModificationDate ?? Date()
-                )
-                loaded.append(note)
-            } catch {
-                recordFailure("Could not load note at \(url.path)", error: error)
-            }
-        }
+        var loaded = try readNotesFromDisk()
 
         loaded.sort { $0.updatedAt > $1.updatedAt }
         notes = loaded
+        lastKnownDiskContent = Dictionary(uniqueKeysWithValues: loaded.map { ($0.id, $0.content) })
         rebuildSearchIndex()
 
         if currentNoteID == nil || !notes.contains(where: { $0.id == currentNoteID }) {
             currentNoteID = notes.first?.id
+        }
+    }
+
+    func reconcileExternalChanges() {
+        do {
+            let diskNotes = try readNotesFromDisk()
+            let diskByID = Dictionary(uniqueKeysWithValues: diskNotes.map { ($0.id, $0) })
+            let dirtyIDs = Set(pendingSaveSnapshots.keys)
+
+            for note in notes {
+                guard diskByID[note.id] == nil else { continue }
+                if dirtyIDs.contains(note.id) {
+                    try preserveDirtyDeletedNote(note)
+                } else {
+                    removeInMemoryNote(id: note.id)
+                    lastKnownDiskContent[note.id] = nil
+                }
+            }
+
+            for diskNote in diskNotes {
+                if dirtyIDs.contains(diskNote.id) {
+                    continue
+                }
+
+                if let idx = notes.firstIndex(where: { $0.id == diskNote.id }) {
+                    notes[idx] = diskNote
+                } else {
+                    notes.append(diskNote)
+                }
+                lastKnownDiskContent[diskNote.id] = diskNote.content
+            }
+
+            notes.sort { $0.updatedAt > $1.updatedAt }
+            rebuildSearchIndex()
+
+            if currentNoteID == nil || !notes.contains(where: { $0.id == currentNoteID }) {
+                currentNoteID = notes.first?.id
+            }
+        } catch {
+            recordFailure("Could not refresh notes from \(notesDirectory.path)", error: error)
         }
     }
 
@@ -229,7 +245,23 @@ final class NoteStore: ObservableObject {
 
     private func persist(_ note: Note) {
         do {
+            if let baseline = lastKnownDiskContent[note.id],
+               let diskContent = try? String(contentsOf: note.fileURL, encoding: .utf8),
+               diskContent != baseline {
+                try preserveConflict(for: note, originalDiskContent: diskContent)
+                saveState = .failed("External edit preserved; Ink copy saved")
+                return
+            }
+
+            if lastKnownDiskContent[note.id] != nil,
+               !fileManager.fileExists(atPath: note.fileURL.path) {
+                try preserveDirtyDeletedNote(note)
+                saveState = .failed("Deleted note preserved as Ink copy")
+                return
+            }
+
             try writeNoteToDisk(note)
+            lastKnownDiskContent[note.id] = note.content
             saveState = .saved(Date())
         } catch {
             pendingSaveSnapshots[note.id] = note
@@ -244,6 +276,115 @@ final class NoteStore: ObservableObject {
         try data.write(to: note.fileURL, options: .atomic)
     }
 
+    private func readNotesFromDisk() throws -> [Note] {
+        try Self.ensureDirectoryExists(at: notesDirectory, fileManager: fileManager)
+
+        let urls = try fileManager.contentsOfDirectory(
+            at: notesDirectory,
+            includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        )
+        .filter { $0.pathExtension.lowercased() == "md" }
+
+        var loaded: [Note] = []
+
+        for url in urls {
+            do {
+                loaded.append(try readNote(at: url))
+            } catch {
+                recordFailure("Could not load note at \(url.path)", error: error)
+            }
+        }
+
+        return loaded
+    }
+
+    private func readNote(at url: URL) throws -> Note {
+        let content = try String(contentsOf: url, encoding: .utf8)
+        let attrs = try? url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
+
+        return Note(
+            id: noteID(for: url),
+            title: Note.deriveTitle(from: content),
+            content: content,
+            fileURL: url,
+            createdAt: attrs?.creationDate ?? Date(),
+            updatedAt: attrs?.contentModificationDate ?? Date()
+        )
+    }
+
+    private func preserveConflict(for note: Note, originalDiskContent: String) throws {
+        let wasCurrent = currentNoteID == note.id
+        let reloadedOriginal = try reloadedNote(for: note, content: originalDiskContent)
+        updateInMemory(reloadedOriginal)
+        lastKnownDiskContent[note.id] = originalDiskContent
+
+        let conflict = try createConflictCopy(from: note)
+        notes.append(conflict)
+        lastKnownDiskContent[conflict.id] = conflict.content
+        if wasCurrent {
+            currentNoteID = conflict.id
+        }
+        rebuildSearchIndex()
+    }
+
+    private func preserveDirtyDeletedNote(_ note: Note) throws {
+        let wasCurrent = currentNoteID == note.id
+        cancelPendingSave(for: note.id)
+        removeInMemoryNote(id: note.id)
+        lastKnownDiskContent[note.id] = nil
+
+        let conflict = try createConflictCopy(from: note)
+        notes.append(conflict)
+        lastKnownDiskContent[conflict.id] = conflict.content
+        if wasCurrent {
+            currentNoteID = conflict.id
+        }
+        rebuildSearchIndex()
+    }
+
+    private func reloadedNote(for note: Note, content: String) throws -> Note {
+        let attrs = try? note.fileURL.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
+        return Note(
+            id: note.id,
+            title: Note.deriveTitle(from: content),
+            content: content,
+            fileURL: note.fileURL,
+            createdAt: attrs?.creationDate ?? note.createdAt,
+            updatedAt: attrs?.contentModificationDate ?? Date()
+        )
+    }
+
+    private func createConflictCopy(from note: Note) throws -> Note {
+        let conflictURL = nextAvailableConflictURL(for: note.fileURL)
+        let conflict = Note(
+            id: noteID(for: conflictURL),
+            title: note.title,
+            content: note.content,
+            fileURL: conflictURL,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+        try writeNoteToDisk(conflict)
+        return conflict
+    }
+
+    private func nextAvailableConflictURL(for originalURL: URL) -> URL {
+        let folder = originalURL.deletingLastPathComponent()
+        let baseName = originalURL.deletingPathExtension().lastPathComponent
+        let timestamp = Self.conflictTimestampFormatter.string(from: Date())
+        let proposedName = "\(baseName) (Ink conflict \(timestamp)).md"
+        var candidate = folder.appendingPathComponent(proposedName)
+        var suffix = 2
+
+        while fileManager.fileExists(atPath: candidate.path) {
+            candidate = folder.appendingPathComponent("\(baseName) (Ink conflict \(timestamp)-\(suffix)).md")
+            suffix += 1
+        }
+
+        return candidate
+    }
+
     private func cancelPendingSave(for id: UUID) {
         pendingSaveWorkItems[id]?.cancel()
         pendingSaveWorkItems[id] = nil
@@ -253,6 +394,13 @@ final class NoteStore: ObservableObject {
     private func updateInMemory(_ note: Note) {
         guard let idx = notes.firstIndex(where: { $0.id == note.id }) else { return }
         notes[idx] = note
+    }
+
+    private func removeInMemoryNote(id: UUID) {
+        notes.removeAll { $0.id == id }
+        if currentNoteID == id {
+            currentNoteID = notes.first?.id
+        }
     }
 
     private func rebuildSearchIndex() {
@@ -295,6 +443,13 @@ final class NoteStore: ObservableObject {
         )
         return UUID(uuid: uuid)
     }
+
+    private static let conflictTimestampFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HHmmss"
+        return formatter
+    }()
 
     private func recordFailure(_ message: String, error: Error) {
         saveState = .failed(message)

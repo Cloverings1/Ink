@@ -28,6 +28,11 @@ struct InkEditorView: View {
                 .onChange(of: text) { _, newValue in
                     noteStore.updateCurrentNoteContent(newValue)
                 }
+                .onChange(of: note.content) { _, newValue in
+                    if newValue != text {
+                        text = newValue
+                    }
+                }
                 .onAppear {
                     text = note.content
                     // Auto-focus when the view appears (triggered by the controller)
