@@ -20,6 +20,7 @@
 		A8DBDBB54460A501BBD0CB32 /* FloatingPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74DBECA606A2C7A54EC6E0DB /* FloatingPanelController.swift */; };
 		B3FE4386EBCA6CCE6CD2772B /* ActionPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA8E8B48C75255D85DDFF48 /* ActionPanelView.swift */; };
 		B9CCBF0B6992C38BFE5D3A75 /* InkEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D947B9AF31776274D60003 /* InkEditorView.swift */; };
+		C3A32C8B1C4C8B4B803CC313 /* AppDelegateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0790444043108C748863C72 /* AppDelegateTests.swift */; };
 		DEB93AE7FB34605877F5E754 /* KeyboardShortcuts+Ink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38BE4FFB225AA4BD13C83FCF /* KeyboardShortcuts+Ink.swift */; };
 /* End PBXBuildFile section */
 
@@ -46,6 +47,7 @@
 		83A9B16630B7CF09AC1DF79A /* FloatingPanelRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanelRootView.swift; sourceTree = "<group>"; };
 		8D3C78544D29FEF78762B069 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		936A0BC9BC178F2B2BF4E920 /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
+		A0790444043108C748863C72 /* AppDelegateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegateTests.swift; sourceTree = "<group>"; };
 		CC143C327FE2B414AA0660AA /* NotesBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesBrowserView.swift; sourceTree = "<group>"; };
 		EFE07C077DDB8F684A9B4225 /* Ink.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Ink.icns; sourceTree = "<group>"; };
 		FB154B9C1F66359005CA6F2A /* InkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InkApp.swift; sourceTree = "<group>"; };
@@ -185,6 +187,7 @@
 		ECB8E9CB155E5DCE02D80300 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				A0790444043108C748863C72 /* AppDelegateTests.swift */,
 				5A289CB181D3963AF8F10843 /* NoteStoreTests.swift */,
 			);
 			path = Tests;
@@ -308,6 +311,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C3A32C8B1C4C8B4B803CC313 /* AppDelegateTests.swift in Sources */,
 				A1E39A694CE9D5A436994153 /* NoteStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Optional menu bar extra so users can still interact when the panel is hidden
     private var statusItem: NSStatusItem?
+    private var didReceiveExternalURL = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.shared = self
@@ -45,8 +46,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupMenuBarExtra()
 
         // 4. On first launch, create a welcome note so the app feels alive immediately
+        var createdWelcomeNote = false
         if noteStore?.notes.isEmpty == true {
             if noteStore?.createNewNote() != nil {
+                createdWelcomeNote = true
                 let content = """
                 # Welcome to Ink
 
@@ -67,13 +70,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // 5. Show the panel on launch (great for first-run delight)
-        // In production you might make this optional via a preference.
+        // 5. Show only the first-run welcome note automatically. Existing private notes
+        // stay hidden until the user presses a hotkey, uses the menu, or accepts a link.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            self.panelController?.showEditor()
+            if Self.shouldShowPanelOnLaunch(
+                createdWelcomeNote: createdWelcomeNote,
+                receivedExternalURL: self.didReceiveExternalURL
+            ) {
+                self.panelController?.showEditor()
+            }
         }
 
         print("Ink launched — global hotkeys registered via KeyboardShortcuts.")
+    }
+
+    static func shouldShowPanelOnLaunch(createdWelcomeNote: Bool, receivedExternalURL: Bool) -> Bool {
+        createdWelcomeNote && !receivedExternalURL
     }
 
     private static var isRunningUnitTests: Bool {
@@ -141,6 +153,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - URL Scheme Handling (ink://note/UUID and ink://create)
 
     func application(_ application: NSApplication, open urls: [URL]) {
+        didReceiveExternalURL = true
         for url in urls {
             handleDeepLink(url)
         }
