@@ -43,15 +43,26 @@ final class NoteStoreTests: XCTestCase {
         XCTAssertEqual(saved, "First pending content")
     }
 
-    func testDeletingNoteCancelsPendingSave() throws {
-        let store = NoteStore(notesDirectory: tempRoot)
+    func testDeletingNoteMovesFileToTrashAndCancelsPendingSave() throws {
+        let trashFolder = tempRoot.appendingPathComponent("Trash", isDirectory: true)
+        try FileManager.default.createDirectory(at: trashFolder, withIntermediateDirectories: true)
+        var trashedURL: URL?
+        let store = NoteStore(notesDirectory: tempRoot) { url in
+            let destination = trashFolder.appendingPathComponent(url.lastPathComponent)
+            try FileManager.default.moveItem(at: url, to: destination)
+            trashedURL = destination
+        }
         let note = try XCTUnwrap(store.createNewNote())
         store.updateCurrentNoteContent("This should not come back")
 
         store.deleteNote(id: note.id)
+
         RunLoop.main.run(until: Date().addingTimeInterval(0.5))
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: note.fileURL.path))
+        let movedFile = try XCTUnwrap(trashedURL)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: movedFile.path))
+        XCTAssertEqual(try String(contentsOf: movedFile, encoding: .utf8), "")
     }
 
     func testChangingFolderFlushesAndReloads() throws {
@@ -198,4 +209,5 @@ final class NoteStoreTests: XCTestCase {
         XCTAssertEqual(try String(contentsOf: conflict, encoding: .utf8), "Unsaved Ink content")
         XCTAssertEqual(store.currentNote?.fileURL.standardizedFileURL, conflict.standardizedFileURL)
     }
+
 }

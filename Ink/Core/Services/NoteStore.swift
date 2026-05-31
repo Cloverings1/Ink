@@ -21,6 +21,7 @@ final class NoteStore: ObservableObject {
 
     private var searchIndex: [UUID: String] = [:]
     private let fileManager: FileManager
+    private let trashItem: (URL) throws -> Void
     private var pendingSaveWorkItems: [UUID: DispatchWorkItem] = [:]
     private var pendingSaveSnapshots: [UUID: Note] = [:]
     private var lastKnownDiskContent: [UUID: String] = [:]
@@ -33,8 +34,15 @@ final class NoteStore: ObservableObject {
         return appSupport.appendingPathComponent("Ink/Notes", isDirectory: true)
     }
 
-    init(notesDirectory: URL? = nil, fileManager: FileManager = .default) {
+    init(
+        notesDirectory: URL? = nil,
+        fileManager: FileManager = .default,
+        trashItem: @escaping (URL) throws -> Void = { url in
+            _ = try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+        }
+    ) {
         self.fileManager = fileManager
+        self.trashItem = trashItem
 
         let storedPath = UserDefaults.standard.string(forKey: Self.notesDirectoryKey)
         if let notesDirectory {
@@ -106,7 +114,7 @@ final class NoteStore: ObservableObject {
 
         do {
             if fileManager.fileExists(atPath: note.fileURL.path) {
-                try fileManager.removeItem(at: note.fileURL)
+                try trashItem(note.fileURL)
             }
         } catch {
             recordFailure("Could not delete note at \(note.fileURL.path)", error: error)
