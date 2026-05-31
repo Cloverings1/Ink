@@ -122,11 +122,17 @@ final class NoteStore: ObservableObject {
         return note
     }
 
-    func selectNote(id: UUID) {
+    @discardableResult
+    func selectNote(id: UUID) -> Bool {
         flushPendingSave(for: currentNoteID)
         reconcileExternalChanges()
-        guard notes.contains(where: { $0.id == id }) else { return }
+        guard containsNote(id: id) else { return false }
         currentNoteID = id
+        return true
+    }
+
+    func containsNote(id: UUID) -> Bool {
+        notes.contains { $0.id == id }
     }
 
     func updateCurrentNoteContent(_ newContent: String) {

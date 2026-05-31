@@ -77,6 +77,23 @@ struct FloatingPanelRootView: View {
 
                     case .browse:
                         NotesBrowserView()
+
+                    case .externalRequest:
+                        if let request = controller.externalLinkRequest {
+                            ExternalLinkConfirmationView(
+                                request: request,
+                                onCancel: {
+                                    controller.cancelExternalRequest()
+                                },
+                                onConfirm: {
+                                    controller.acceptExternalRequest()
+                                }
+                            )
+                        } else {
+                            EmptyEditorPlaceholder {
+                                controller.createAndShow()
+                            }
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -94,6 +111,41 @@ struct FloatingPanelRootView: View {
         }
         .frame(minWidth: 620, minHeight: 420)
         .preferredColorScheme(.dark)
+    }
+}
+
+struct ExternalLinkConfirmationView: View {
+    let request: ExternalLinkRequest
+    let onCancel: () -> Void
+    let onConfirm: () -> Void
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Image(systemName: request.systemImage)
+                .font(.system(size: 34, weight: .regular))
+                .foregroundStyle(.secondary)
+
+            VStack(spacing: 8) {
+                Text(request.title)
+                    .font(.title3.weight(.semibold))
+
+                Text(request.message)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            HStack(spacing: 12) {
+                Button("Cancel", action: onCancel)
+                    .keyboardShortcut(.escape, modifiers: [])
+
+                Button(request.confirmTitle, action: onConfirm)
+                    .keyboardShortcut(.return, modifiers: [])
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

@@ -19,6 +19,12 @@ struct InkApp: App {
 
 // MARK: - App Delegate (the real "main" for a floating panel app)
 
+enum DeepLinkRoute: Equatable {
+    case create
+    case note(UUID)
+    case ignored
+}
+
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     static private(set) weak var shared: AppDelegate?
@@ -29,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Optional menu bar extra so users can still interact when the panel is hidden
     private var statusItem: NSStatusItem?
     private var didReceiveExternalURL = false
+    private var pendingDeepLinks: [URL] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.shared = self
@@ -70,6 +77,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        drainPendingDeepLinks()
+
         // 5. Show only the first-run welcome note automatically. Existing private notes
         // stay hidden until the user presses a hotkey, uses the menu, or accepts a link.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
@@ -86,6 +95,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     static func shouldShowPanelOnLaunch(createdWelcomeNote: Bool, receivedExternalURL: Bool) -> Bool {
         createdWelcomeNote && !receivedExternalURL
+    }
+
+    static func deepLinkRoute(for url: URL) -> DeepLinkRoute {
+        guard url.scheme?.lowercased() == "ink" else { return .ignored }
+
+        switch url.host?.lowercased() {
+        case "create":
+            return (url.path.isEmpty || url.path == "/") ? .create : .ignored
+
+        case "note":
+            let pathParts = url.pathComponents.filter { $0 != "/" }
+            guard pathParts.count == 1, let uuid = UUID(uuidString: pathParts[0]) else {
+                return .ignored
+            }
+            return .note(uuid)
+
+        default:
+            return .ignored
+        }
     }
 
     private static var isRunningUnitTests: Bool {
@@ -160,17 +188,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleDeepLink(_ url: URL) {
-        guard url.scheme == "ink" else { return }
-
-        if url.host == "create" || url.path == "/create" {
-            panelController?.createAndShow()
+        guard noteStore != nil, panelController != nil else {
+            pendingDeepLinks.append(url)
             return
         }
 
-        if url.host == "note", let idString = url.pathComponents.last,
-           let uuid = UUID(uuidString: idString) {
-            noteStore?.selectNote(id: uuid)
-            panelController?.showEditor()
+        switch Self.deepLinkRoute(for: url) {
+        case .create:
+            panelController?.showExternalRequest(.createNote)
+
+        case .note(let uuid):
+            noteStore?.reconcileExternalChanges()
+            guard noteStore?.containsNote(id: uuid) == true else { return }
+            panelController?.showExternalRequest(.openNote(uuid))
+
+        case .ignored:
+            return
+        }
+    }
+
+    private func drainPendingDeepLinks() {
+        let urls = pendingDeepLinks
+        pendingDeepLinks.removeAll()
+        for url in urls {
+            handleDeepLink(url)
         }
     }
 }

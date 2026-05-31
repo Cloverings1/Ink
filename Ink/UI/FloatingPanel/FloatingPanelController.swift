@@ -2,6 +2,47 @@ import SwiftUI
 import AppKit
 import KeyboardShortcuts
 
+enum ExternalLinkRequest: Equatable {
+    case openNote(UUID)
+    case createNote
+
+    var title: String {
+        switch self {
+        case .openNote:
+            return "Open Ink note?"
+        case .createNote:
+            return "Create a new Ink note?"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .openNote:
+            return "An external link is asking Ink to open a note."
+        case .createNote:
+            return "An external link is asking Ink to create a note."
+        }
+    }
+
+    var confirmTitle: String {
+        switch self {
+        case .openNote:
+            return "Open"
+        case .createNote:
+            return "Create"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .openNote:
+            return "link"
+        case .createNote:
+            return "link.badge.plus"
+        }
+    }
+}
+
 /// Owns the single FloatingNotePanel instance for the whole app.
 /// Handles:
 /// - Global hotkey registration (⌥⌘N create, ⌥⌘P browse/toggle, ⌥⌘K action panel)
@@ -20,10 +61,12 @@ final class FloatingPanelController: ObservableObject {
     // What the panel is currently showing
     @Published var mode: PanelMode = .editor
     @Published var isActionPanelPresented = false
+    @Published private(set) var externalLinkRequest: ExternalLinkRequest?
 
     enum PanelMode {
         case editor
         case browse
+        case externalRequest
     }
 
     // Last known frame so we can restore position
@@ -57,6 +100,7 @@ final class FloatingPanelController: ObservableObject {
 
     /// Shows the panel with the editor focused on the current (or newly created) note.
     func showEditor() {
+        externalLinkRequest = nil
         isActionPanelPresented = false
         mode = .editor
         ensurePanelExistsAndShow()
@@ -69,6 +113,7 @@ final class FloatingPanelController: ObservableObject {
 
     /// Shows the panel in browse/search mode (⌥⌘P behavior).
     func showBrowse() {
+        externalLinkRequest = nil
         isActionPanelPresented = false
         mode = .browse
         ensurePanelExistsAndShow()
@@ -79,6 +124,7 @@ final class FloatingPanelController: ObservableObject {
 
     /// Creates a fresh note and immediately shows the editor.
     func createAndShow() {
+        externalLinkRequest = nil
         if noteStore.createNewNote() != nil {
             showEditor()
         } else {
@@ -88,6 +134,7 @@ final class FloatingPanelController: ObservableObject {
 
     /// Toggles between editor and browse, or shows the panel if it was hidden.
     func toggleBrowseOrEditor() {
+        externalLinkRequest = nil
         if panel?.isVisible == true {
             // Already visible — switch modes
             mode = (mode == .editor) ? .browse : .editor
@@ -102,6 +149,7 @@ final class FloatingPanelController: ObservableObject {
     }
 
     func showActionPanel() {
+        externalLinkRequest = nil
         isActionPanelPresented = true
         ensurePanelExistsAndShow()
     }
@@ -115,9 +163,49 @@ final class FloatingPanelController: ObservableObject {
         }
     }
 
+    /// Presents a safe confirmation screen before acting on an untrusted external URL.
+    func showExternalRequest(_ request: ExternalLinkRequest) {
+        if externalLinkRequest == request, mode == .externalRequest {
+            ensurePanelExistsAndShow()
+            return
+        }
+
+        isActionPanelPresented = false
+        externalLinkRequest = request
+        mode = .externalRequest
+        ensurePanelExistsAndShow()
+    }
+
+    func acceptExternalRequest() {
+        guard let request = externalLinkRequest else { return }
+        externalLinkRequest = nil
+
+        switch request {
+        case .openNote(let id):
+            if noteStore.selectNote(id: id) {
+                showEditor()
+            } else {
+                hide()
+            }
+
+        case .createNote:
+            if noteStore.createNewNote() != nil {
+                showEditor()
+            } else {
+                hide()
+            }
+        }
+    }
+
+    func cancelExternalRequest() {
+        externalLinkRequest = nil
+        hide()
+    }
+
     /// Completely hides the floating panel.
     func hide() {
         noteStore.flushPendingSaves()
+        externalLinkRequest = nil
         isActionPanelPresented = false
         panel?.close()
         panel = nil   // we recreate on next show (cheap and avoids state issues)

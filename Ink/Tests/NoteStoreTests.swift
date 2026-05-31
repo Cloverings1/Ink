@@ -45,6 +45,17 @@ final class NoteStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testSelectingMissingNoteReturnsFalseAndKeepsCurrentNote() throws {
+        let store = NoteStore(notesDirectory: tempRoot)
+        let note = try XCTUnwrap(store.createNewNote())
+
+        let didSelect = store.selectNote(id: UUID())
+
+        XCTAssertFalse(didSelect)
+        XCTAssertEqual(store.currentNoteID, note.id)
+    }
+
+    @MainActor
     func testDeletingNoteMovesFileToTrashAndCancelsPendingSave() throws {
         let trashFolder = tempRoot.appendingPathComponent("Trash", isDirectory: true)
         try FileManager.default.createDirectory(at: trashFolder, withIntermediateDirectories: true)
