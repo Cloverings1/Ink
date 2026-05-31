@@ -7,6 +7,7 @@ import AppKit
 /// - Visible on all Spaces + fullscreen apps
 /// - Dismisses on Esc / click outside / resign key
 final class FloatingNotePanel: NSPanel {
+    var onDismissRequest: (() -> Void)?
 
     init<Content: View>(@ViewBuilder content: () -> Content,
                         contentRect: NSRect = NSRect(x: 0, y: 0, width: 720, height: 520)) {
@@ -63,12 +64,11 @@ final class FloatingNotePanel: NSPanel {
     /// Close when user clicks outside (or switches Spaces in certain ways)
     override func resignKey() {
         super.resignKey()
-        // We let the controller decide whether to close or not.
-        // By default we stay open until explicit dismiss (better for notes).
+        onDismissRequest?()
     }
 
     /// Allow Esc key to close the panel from anywhere inside
     override func cancelOperation(_ sender: Any?) {
-        self.close()
+        onDismissRequest?()
     }
 }

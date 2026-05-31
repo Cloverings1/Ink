@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The "Browse Notes" experience (⌘P).
+/// The "Browse Notes" experience (⌥⌘P).
 /// Matches the exact layout and typography from the provided screenshot:
 /// - Search bar at top
 /// - "Notes  X/Y Notes" header
@@ -73,7 +73,7 @@ struct NotesBrowserView: View {
 
             // Bottom hint bar (matches screenshot chrome)
             HStack {
-                Text("⌘N  New   •   ⌘K  Actions")
+                Text("⌥⌘N  New   •   ⌥⌘K  Actions")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Spacer()

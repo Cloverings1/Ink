@@ -21,51 +21,62 @@ struct InkApp: App {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var noteStore: NoteStore!
-    private var panelController: FloatingPanelController!
+    static private(set) weak var shared: AppDelegate?
+
+    private(set) var noteStore: NoteStore?
+    private var panelController: FloatingPanelController?
 
     // Optional menu bar extra so users can still interact when the panel is hidden
     private var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Self.shared = self
+
+        guard !Self.isRunningUnitTests else { return }
+
         // 1. Create the data layer (plain .md files)
-        noteStore = NoteStore()
+        let store = NoteStore()
+        noteStore = store
 
         // 2. Create the panel controller (owns hotkeys + the NSPanel)
-        panelController = FloatingPanelController(noteStore: noteStore)
+        panelController = FloatingPanelController(noteStore: store)
 
         // 3. Create a minimal, elegant menu bar icon
         setupMenuBarExtra()
 
         // 4. On first launch, create a welcome note so the app feels alive immediately
-        if noteStore.notes.isEmpty {
-            let welcome = noteStore.createNewNote()
-            var content = """
+        if noteStore?.notes.isEmpty == true {
+            _ = noteStore?.createNewNote()
+            let content = """
             # Welcome to Ink
 
             This is your first note. Everything you write here is stored as a plain **Markdown** file on your Mac.
 
-            - Press **⌘N** from anywhere to create a new note instantly.
-            - Press **⌘P** to browse and search all your notes.
-            - Press **⌘K** to open the powerful Action Panel.
+            - Press **⌥⌘N** from anywhere to create a new note instantly.
+            - Press **⌥⌘P** to browse and search all your notes.
+            - Press **⌥⌘K** to open the Action Panel.
 
             Your notes live here:
-            \(noteStore.notesDirectory.path)
+            \(noteStore?.notesDirectory.path ?? "")
 
             You own your data — open the files in any editor, Obsidian, VS Code, or git them.
 
             Happy thinking.
             """
-            noteStore.updateCurrentNoteContent(content)
+            noteStore?.updateCurrentNoteContent(content)
         }
 
         // 5. Show the panel on launch (great for first-run delight)
         // In production you might make this optional via a preference.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            self.panelController.showEditor()
+            self.panelController?.showEditor()
         }
 
         print("Ink launched — global hotkeys registered via KeyboardShortcuts.")
+    }
+
+    private static var isRunningUnitTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
 
     private func setupMenuBarExtra() {
@@ -77,9 +88,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.toolTip = "Ink — Quick Notes"
 
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Create Note (⌘N)", action: #selector(createNote), keyEquivalent: "n"))
-        menu.addItem(NSMenuItem(title: "Browse Notes (⌘P)", action: #selector(browseNotes), keyEquivalent: "p"))
-        menu.addItem(NSMenuItem(title: "Action Panel (⌘K)", action: #selector(showActions), keyEquivalent: "k"))
+        menu.addItem(shortcutItem(title: "Create Note (⌥⌘N)", action: #selector(createNote), key: "n"))
+        menu.addItem(shortcutItem(title: "Browse Notes (⌥⌘P)", action: #selector(browseNotes), key: "p"))
+        menu.addItem(shortcutItem(title: "Action Panel (⌥⌘K)", action: #selector(showActions), key: "k"))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ","))
         menu.addItem(.separator())
@@ -93,26 +104,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.menu = menu
     }
 
+    private func shortcutItem(title: String, action: Selector, key: String) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+        item.keyEquivalentModifierMask = [.option, .command]
+        return item
+    }
+
     @objc private func createNote() {
-        panelController.createAndShow()
+        panelController?.createAndShow()
     }
 
     @objc private func browseNotes() {
-        panelController.showBrowse()
+        panelController?.showBrowse()
     }
 
     @objc private func showActions() {
-        panelController.showActionPanel()
+        panelController?.showActionPanel()
     }
 
     @objc private func openSettings() {
         // In a real app we would bring up the Settings scene.
         // For now just show the panel in a future settings tab.
-        panelController.showEditor()
+        panelController?.showEditor()
     }
 
     @objc private func quit() {
+        noteStore?.flushPendingSaves()
         NSApp.terminate(nil)
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        noteStore?.flushPendingSaves()
+        return .terminateNow
     }
 
     // MARK: - URL Scheme Handling (ink://note/UUID and ink://create)
@@ -127,14 +150,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard url.scheme == "ink" else { return }
 
         if url.host == "create" || url.path == "/create" {
-            panelController.createAndShow()
+            panelController?.createAndShow()
             return
         }
 
         if url.host == "note", let idString = url.pathComponents.last,
            let uuid = UUID(uuidString: idString) {
-            noteStore.selectNote(id: uuid)
-            panelController.showEditor()
+            noteStore?.selectNote(id: uuid)
+            panelController?.showEditor()
         }
     }
 }
@@ -167,7 +190,7 @@ struct SettingsView: View {
                     KeyboardShortcuts.Recorder(for: .toggleNotes)
                 }
                 HStack {
-                    Text("Action Panel (⌘K)")
+                    Text("Action Panel (⌥⌘K)")
                         .frame(width: 140, alignment: .leading)
                     KeyboardShortcuts.Recorder(for: .showActionPanel)
                 }
@@ -198,6 +221,10 @@ struct SettingsView: View {
                     Button("Choose Folder…") {
                         chooseNotesFolder()
                     }
+
+                    Button("Reveal") {
+                        revealNotesFolder()
+                    }
                 }
             }
 
@@ -211,7 +238,7 @@ struct SettingsView: View {
         .frame(width: 480, height: 380)
         .onAppear {
             if noteStoreForSettings == nil {
-                noteStoreForSettings = NoteStore()
+                noteStoreForSettings = AppDelegate.shared?.noteStore ?? NoteStore()
             }
         }
     }
@@ -227,5 +254,10 @@ struct SettingsView: View {
             noteStoreForSettings?.changeNotesDirectory(to: url)
             storedNotesPath = url.path
         }
+    }
+
+    private func revealNotesFolder() {
+        guard let url = noteStoreForSettings?.notesDirectory else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 }

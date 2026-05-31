@@ -19,9 +19,7 @@ struct Note: Identifiable, Equatable, Hashable {
     static func new(in folder: URL) -> Note {
         let id = UUID()
         let now = Date()
-        // Human-friendly but unique filename
-        let slug = "untitled-\(id.uuidString.prefix(8))"
-        let fileURL = folder.appendingPathComponent("\(slug).md")
+        let fileURL = folder.appendingPathComponent("note-\(id.uuidString).md")
 
         return Note(
             id: id,

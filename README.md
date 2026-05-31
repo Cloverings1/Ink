@@ -88,9 +88,9 @@ In-memory title + content index for fast browse/search — no database lock-in i
 
 | Action | Default | What it does |
 |:--|:--:|:--|
-| **Create note** | `⌘N` | Opens the editor with a fresh note |
-| **Browse / toggle** | `⌘P` | Search and switch notes |
-| **Action panel** | `⌘K` | Command palette for all actions |
+| **Create note** | `⌥⌘N` | Opens the editor with a fresh note |
+| **Browse / toggle** | `⌥⌘P` | Search and switch notes |
+| **Action panel** | `⌥⌘K` | Command palette for all actions |
 | **Dismiss** | `Esc` | Hide the panel (Spotlight-style) |
 
 </p>
@@ -120,7 +120,7 @@ cd Ink
    - **URL Types → Schemes:** `ink`
 8. Press **⌘R**
 
-You should get a menu bar extra, no main window, and **⌘N** summoning the panel.
+You should get a menu bar extra, no main window, and **⌥⌘N** summoning the panel.
 
 <details>
 <summary><strong>Full Xcode setup checklist</strong></summary>
@@ -131,7 +131,7 @@ You should get a menu bar extra, no main window, and **⌘N** summoning the pane
 - Xcode 16+ recommended
 - Product Name: **Ink**
 - Organization Identifier: e.g. `com.yourname`
-- Uncheck Core Data and tests for now
+- Uncheck Core Data. The repo includes an `InkTests` target for persistence coverage.
 
 **Replace generated files**
 - Copy all Swift sources from this repo’s `Ink/` folder into your project
@@ -155,7 +155,8 @@ You should get a menu bar extra, no main window, and **⌘N** summoning the pane
 
 **Build & run**
 - ⌘R — app launches with no main window (expected)
-- Press ⌘N to verify the floating panel
+- Press ⌥⌘N to verify the floating panel
+- Run `xcodebuild test -project Ink.xcodeproj -scheme Ink -destination 'platform=macOS'` to verify persistence behavior
 
 </details>
 
@@ -181,6 +182,8 @@ Ink/
 │   │   ├── FloatingPanelController.swift
 │   │   └── FloatingPanelRootView.swift
 │   └── CommandPalette/ActionPanelView.swift
+├── Tests/
+│   └── NoteStoreTests.swift
 ├── Resources/
 │   ├── Assets.xcassets/
 │   └── Icons/Ink.icns
@@ -198,7 +201,7 @@ Ink/
 |:--|:--|
 | **Instant** | Global hotkey + non-activating `NSPanel` |
 | **Native** | SwiftUI + AppKit, frosted HUD window material |
-| **Portable** | Plain `.md` files on disk, debounced auto-save |
+| **Portable** | Plain `.md` files on disk, debounced per-note auto-save with flush-on-transition |
 | **Lightweight** | One dependency (`KeyboardShortcuts`) for hotkeys |
 | **Searchable** | In-memory index, no SQLite in v1 |
 

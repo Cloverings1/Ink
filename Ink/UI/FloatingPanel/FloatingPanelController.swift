@@ -4,7 +4,7 @@ import KeyboardShortcuts
 
 /// Owns the single FloatingNotePanel instance for the whole app.
 /// Handles:
-/// - Global hotkey registration (⌘N create, ⌘P browse/toggle, ⌘K action panel)
+/// - Global hotkey registration (⌥⌘N create, ⌥⌘P browse/toggle, ⌥⌘K action panel)
 /// - Show / hide / toggle logic
 /// - Smart positioning (center on first show, remember last position)
 /// - Switching between Editor and Browse modes inside the same panel
@@ -47,7 +47,7 @@ final class FloatingPanelController: ObservableObject {
             self?.toggleBrowseOrEditor()
         }
 
-        // Action Panel (⌘K) — the powerful command palette
+        // Action Panel (⌥⌘K) — the powerful command palette
         KeyboardShortcuts.onKeyUp(for: .showActionPanel) { [weak self] in
             self?.showActionPanel()
         }
@@ -66,7 +66,7 @@ final class FloatingPanelController: ObservableObject {
         }
     }
 
-    /// Shows the panel in browse/search mode (⌘P behavior).
+    /// Shows the panel in browse/search mode (⌥⌘P behavior).
     func showBrowse() {
         mode = .browse
         ensurePanelExistsAndShow()
@@ -106,6 +106,7 @@ final class FloatingPanelController: ObservableObject {
 
     /// Completely hides the floating panel.
     func hide() {
+        noteStore.flushPendingSaves()
         panel?.close()
         panel = nil   // we recreate on next show (cheap and avoids state issues)
     }
@@ -118,8 +119,6 @@ final class FloatingPanelController: ObservableObject {
         }
         positionPanelIfNeeded()
         panel?.makeKeyAndOrderFront(nil)
-        // Make sure the app is active enough for the panel (but not stealing focus globally)
-        NSApp.activate(ignoringOtherApps: false)
     }
 
     private func createPanel() {
@@ -129,6 +128,11 @@ final class FloatingPanelController: ObservableObject {
 
         panel = FloatingNotePanel {
             rootView
+        }
+        panel?.onDismissRequest = { [weak self] in
+            Task { @MainActor in
+                self?.hide()
+            }
         }
 
         // Restore previous position if we have one
@@ -144,14 +148,18 @@ final class FloatingPanelController: ObservableObject {
             object: panel,
             queue: .main
         ) { [weak self] _ in
-            self?.lastFrame = self?.panel?.frame
+            Task { @MainActor in
+                self?.lastFrame = self?.panel?.frame
+            }
         }
         NotificationCenter.default.addObserver(
             forName: NSWindow.didResizeNotification,
             object: panel,
             queue: .main
         ) { [weak self] _ in
-            self?.lastFrame = self?.panel?.frame
+            Task { @MainActor in
+                self?.lastFrame = self?.panel?.frame
+            }
         }
     }
 

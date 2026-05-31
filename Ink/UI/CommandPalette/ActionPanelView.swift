@@ -1,6 +1,8 @@
 import SwiftUI
+import AppKit
+import UniformTypeIdentifiers
 
-/// The full Action Panel (⌘K) — the powerful command palette.
+/// The full Action Panel (⌥⌘K) — the powerful command palette.
 /// Renders exactly the commands and keyboard hints from the provided screenshot.
 struct ActionPanelView: View {
     @EnvironmentObject var noteStore: NoteStore
@@ -11,18 +13,13 @@ struct ActionPanelView: View {
 
     private var commands: [Command] {
         let all: [Command] = [
-            Command(title: "New Note", subtitle: nil, shortcut: "⌘N", action: {
+            Command(title: "New Note", subtitle: nil, shortcut: "⌥⌘N", action: {
                 _ = noteStore.createNewNote()
                 controller.showEditor()
                 onDismiss()
             }),
-            Command(title: "Browse Notes", subtitle: nil, shortcut: "⌘P", action: {
+            Command(title: "Browse Notes", subtitle: nil, shortcut: "⌥⌘P", action: {
                 controller.showBrowse()
-                onDismiss()
-            }),
-            Command(title: "Find in Note", subtitle: nil, shortcut: "⌘F", action: {
-                // Future: focus find bar inside editor
-                NotificationCenter.default.post(name: .focusEditor, object: nil)
                 onDismiss()
             }),
             Command(title: "Copy Note As...", subtitle: nil, shortcut: "⇧⌘C", action: {
@@ -33,20 +30,10 @@ struct ActionPanelView: View {
                 copyDeeplink()
                 onDismiss()
             }),
-            Command(title: "Create Quicklink", subtitle: nil, shortcut: "⇧⌘L", action: {
-                // Future: register a global quicklink
-                onDismiss()
-            }),
             Command(title: "Export...", subtitle: nil, shortcut: "⇧⌘E", action: {
                 exportCurrentNote()
                 onDismiss()
-            }),
-            Command(title: "Format...", subtitle: nil, shortcut: "⇧⌘F", action: {
-                // Future: advanced formatting sheet
-                onDismiss()
-            }),
-            Command(title: "Move List Item Up", subtitle: nil, shortcut: "↑", action: {}),
-            Command(title: "Move List Item Down", subtitle: nil, shortcut: "↓", action: {}),
+            })
         ]
 
         let f = filter.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -139,11 +126,24 @@ struct ActionPanelView: View {
 
     private func exportCurrentNote() {
         guard let note = noteStore.currentNote else { return }
-        // For v1 we just copy the content to clipboard as "export"
-        // A full NSSavePanel implementation lives in polish-v1
-        let pb = NSPasteboard.general
-        pb.clearContents()
-        pb.setString(note.content, forType: .string)
+        noteStore.flushPendingSave(for: note.id)
+
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
+        panel.nameFieldStringValue = note.fileURL.lastPathComponent
+        panel.canCreateDirectories = true
+
+        guard panel.runModal() == .OK, let destination = panel.url else { return }
+
+        do {
+            if FileManager.default.fileExists(atPath: destination.path) {
+                try FileManager.default.removeItem(at: destination)
+            }
+            try FileManager.default.copyItem(at: note.fileURL, to: destination)
+        } catch {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(note.content, forType: .string)
+        }
     }
 }
 

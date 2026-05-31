@@ -1,72 +1,72 @@
 import Foundation
 import Combine
+import os
 
 /// Manages all notes as plain .md files in a user-chosen directory.
-/// Provides fast in-memory search + auto-save.
-/// This class is the single source of truth for the app's data layer.
+/// Provides fast in-memory search + reliable auto-save.
 @MainActor
 final class NoteStore: ObservableObject {
-    // MARK: - Published State (SwiftUI observes these)
+    enum SaveState: Equatable {
+        case idle
+        case saving
+        case saved(Date)
+        case failed(String)
+    }
 
     @Published private(set) var notes: [Note] = []
     @Published private(set) var currentNoteID: UUID?
+    @Published private(set) var notesDirectory: URL
+    @Published private(set) var saveState: SaveState = .idle
 
-    // The folder where all notes live (user can change this in Settings)
-    @Published var notesDirectory: URL {
-        didSet {
-            // When user changes the folder we reload everything
-            try? loadNotes()
-        }
-    }
+    private var searchIndex: [UUID: String] = [:]
+    private let fileManager: FileManager
+    private var pendingSaveWorkItems: [UUID: DispatchWorkItem] = [:]
+    private var pendingSaveSnapshots: [UUID: Note] = [:]
 
-    // Simple in-memory search index (title + content). Rebuilt on every change.
-    private var searchIndex: [UUID: String] = [:]   // lowercased blob for fast contains()
+    private static let logger = Logger(subsystem: "com.jonasbubela.Ink", category: "NoteStore")
+    private static let notesDirectoryKey = "notesDirectoryPath"
 
-    private let fileManager = FileManager.default
-    private var saveWorkItem: DispatchWorkItem?   // debounce auto-save
-
-    // Default location: ~/Library/Application Support/Ink/Notes
     static var defaultNotesDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let inkDir = appSupport.appendingPathComponent("Ink/Notes", isDirectory: true)
-        return inkDir
+        return appSupport.appendingPathComponent("Ink/Notes", isDirectory: true)
     }
 
-    init(notesDirectory: URL? = nil) {
-        let storedPath = UserDefaults.standard.string(forKey: "notesDirectoryPath")
-        let resolvedDir: URL
+    init(notesDirectory: URL? = nil, fileManager: FileManager = .default) {
+        self.fileManager = fileManager
 
-        if let path = storedPath, !path.isEmpty {
-            resolvedDir = URL(fileURLWithPath: path)
-        } else if let provided = notesDirectory {
-            resolvedDir = provided
+        let storedPath = UserDefaults.standard.string(forKey: Self.notesDirectoryKey)
+        if let notesDirectory {
+            self.notesDirectory = notesDirectory
+        } else if let path = storedPath, !path.isEmpty {
+            self.notesDirectory = URL(fileURLWithPath: path)
         } else {
-            resolvedDir = Self.defaultNotesDirectory
+            self.notesDirectory = Self.defaultNotesDirectory
         }
 
-        self.notesDirectory = resolvedDir
-        try? Self.ensureDirectoryExists(at: resolvedDir)
-        try? loadNotes()
+        do {
+            try Self.ensureDirectoryExists(at: self.notesDirectory, fileManager: fileManager)
+            try loadNotes()
+        } catch {
+            recordFailure("Could not load notes from \(self.notesDirectory.path)", error: error)
+        }
     }
 
-    // MARK: - Directory Management
-
-    private static func ensureDirectoryExists(at url: URL) throws {
-        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    var currentNote: Note? {
+        guard let id = currentNoteID else { return nil }
+        return notes.first { $0.id == id }
     }
 
-    // MARK: - CRUD
-
-    /// Creates a brand new empty note and makes it current.
     @discardableResult
     func createNewNote() -> Note {
-        var note = Note.new(in: notesDirectory)
-        // Give it a tiny starter content so the title derivation works nicely later
-        note.content = ""
-        note.title = "Untitled"
+        flushPendingSaves()
 
-        // Write immediately so the file exists
-        try? writeNoteToDisk(note)
+        let note = Note.new(in: notesDirectory)
+        do {
+            try writeNoteToDisk(note)
+            saveState = .saved(Date())
+        } catch {
+            recordFailure("Could not create note at \(note.fileURL.path)", error: error)
+        }
 
         notes.append(note)
         rebuildSearchIndex()
@@ -74,53 +74,39 @@ final class NoteStore: ObservableObject {
         return note
     }
 
-    /// Loads a specific note into the editor (by ID).
     func selectNote(id: UUID) {
-        guard notes.first(where: { $0.id == id }) != nil else { return }
+        guard notes.contains(where: { $0.id == id }) else { return }
+        flushPendingSave(for: currentNoteID)
         currentNoteID = id
     }
 
-    /// Returns the currently selected note (or nil).
-    var currentNote: Note? {
-        guard let id = currentNoteID else { return nil }
-        return notes.first { $0.id == id }
-    }
-
-    /// Updates the content of the current note (called by the editor on every keystroke).
-    /// Triggers a debounced disk write + index rebuild.
     func updateCurrentNoteContent(_ newContent: String) {
         guard var note = currentNote else { return }
-
-        let oldContent = note.content
-        guard newContent != oldContent else { return }
+        guard newContent != note.content else { return }
 
         note.content = newContent
         note.updatedAt = Date()
         note.title = Note.deriveTitle(from: newContent)
 
-        // Update in-memory list
-        if let idx = notes.firstIndex(where: { $0.id == note.id }) {
-            notes[idx] = note
-        }
-
-        // Rebuild search index immediately (cheap)
+        updateInMemory(note)
         rebuildSearchIndex()
-
-        // Debounced save to disk (300ms)
-        saveWorkItem?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            try? self?.writeNoteToDisk(note)
-        }
-        saveWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
+        scheduleSave(note)
     }
 
-    /// Deletes a note from disk and memory.
     func deleteNote(id: UUID) {
         guard let idx = notes.firstIndex(where: { $0.id == id }) else { return }
         let note = notes[idx]
 
-        try? fileManager.removeItem(at: note.fileURL)
+        cancelPendingSave(for: id)
+
+        do {
+            if fileManager.fileExists(atPath: note.fileURL.path) {
+                try fileManager.removeItem(at: note.fileURL)
+            }
+        } catch {
+            recordFailure("Could not delete note at \(note.fileURL.path)", error: error)
+            return
+        }
 
         notes.remove(at: idx)
         rebuildSearchIndex()
@@ -130,103 +116,177 @@ final class NoteStore: ObservableObject {
         }
     }
 
-    // MARK: - Search
-
-    /// Fast search across title + content. Case-insensitive.
     func searchNotes(query: String) -> [Note] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !q.isEmpty else { return notes.sorted { $0.updatedAt > $1.updatedAt } }
 
         return notes
-            .filter { note in
-                (searchIndex[note.id] ?? "").contains(q)
-            }
+            .filter { (searchIndex[$0.id] ?? "").contains(q) }
             .sorted { $0.updatedAt > $1.updatedAt }
     }
 
-    private func rebuildSearchIndex() {
-        searchIndex = [:]
-        for note in notes {
-            let blob = "\(note.title.lowercased()) \(note.content.lowercased())"
-            searchIndex[note.id] = blob
+    func flushPendingSaves() {
+        for id in Array(pendingSaveSnapshots.keys) {
+            flushPendingSave(for: id)
         }
     }
 
-    // MARK: - Persistence (plain .md files)
+    func flushPendingSave(for id: UUID?) {
+        guard let id else { return }
+        pendingSaveWorkItems[id]?.cancel()
+        pendingSaveWorkItems[id] = nil
 
-    private func writeNoteToDisk(_ note: Note) throws {
-        let data = note.content.data(using: .utf8) ?? Data()
-        try data.write(to: note.fileURL, options: .atomic)
+        guard let note = pendingSaveSnapshots.removeValue(forKey: id) else { return }
+        persist(note)
     }
 
-    /// Scans the notes directory and loads all .md files into memory.
-    func loadNotes() throws {
-        try Self.ensureDirectoryExists(at: notesDirectory)
+    func changeNotesDirectory(to newURL: URL) {
+        flushPendingSaves()
 
-        let urls = try fileManager.contentsOfDirectory(at: notesDirectory, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles])
-            .filter { $0.pathExtension.lowercased() == "md" }
+        do {
+            try Self.ensureDirectoryExists(at: newURL, fileManager: fileManager)
+            UserDefaults.standard.set(newURL.path, forKey: Self.notesDirectoryKey)
+            notesDirectory = newURL
+            try loadNotes()
+        } catch {
+            recordFailure("Could not switch notes folder to \(newURL.path)", error: error)
+        }
+    }
+
+    func exportNoteAsMarkdown(_ note: Note) -> URL? {
+        flushPendingSave(for: note.id)
+        return note.fileURL
+    }
+
+    func loadNotes() throws {
+        flushPendingSaves()
+        try Self.ensureDirectoryExists(at: notesDirectory, fileManager: fileManager)
+
+        let urls = try fileManager.contentsOfDirectory(
+            at: notesDirectory,
+            includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        )
+        .filter { $0.pathExtension.lowercased() == "md" }
 
         var loaded: [Note] = []
 
         for url in urls {
-            guard let content = try? String(contentsOf: url, encoding: .utf8) else { continue }
+            do {
+                let canonicalURL = try canonicalNoteURL(for: url)
+                let content = try String(contentsOf: canonicalURL, encoding: .utf8)
+                let attrs = try? canonicalURL.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
 
-            let attrs = try? url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
-            let created = attrs?.creationDate ?? Date()
-            let updated = attrs?.contentModificationDate ?? Date()
-
-            let id = UUID() // We use filename for stability? For v1 we just synthesize stable IDs from path.
-            // Better: embed UUID in filename or use a simple hash. For simplicity in v1 we use file path hash as ID.
-            // To keep things simple and robust we just generate a deterministic ID from the filename.
-            let stableID = UUID(uuidString: String(format: "%08x-%04x-%04x-%04x-%012x",
-                                                   url.lastPathComponent.hashValue & 0xffffffff,
-                                                   0, 0, 0, 0)) ?? UUID()
-
-            // Actually a cleaner approach for v1: just use the file path as the identity and a random UUID per load? No.
-            // Best pragmatic choice: store a tiny YAML frontmatter with the ID on first save.
-            // For the scaffold we do a simple reliable thing: use the file's inode or just always re-derive and keep last known current.
-
-            // Simpler robust approach used here:
-            let noteID = UUID() // We will improve this in polish phase with frontmatter.
-            // For now to make switching work reliably we use a hash of the URL path.
-            let pathHash = url.path.hashValue
-            let idFromPath = UUID(uuidString: String(format: "%08x-%04x-%04x-%04x-%012x", pathHash & 0xffffffff, 0, 0, 0, 0)) ?? UUID()
-
-            let title = Note.deriveTitle(from: content)
-
-            let note = Note(
-                id: idFromPath,
-                title: title,
-                content: content,
-                fileURL: url,
-                createdAt: created,
-                updatedAt: updated
-            )
-            loaded.append(note)
+                let note = Note(
+                    id: try Self.noteID(from: canonicalURL),
+                    title: Note.deriveTitle(from: content),
+                    content: content,
+                    fileURL: canonicalURL,
+                    createdAt: attrs?.creationDate ?? Date(),
+                    updatedAt: attrs?.contentModificationDate ?? Date()
+                )
+                loaded.append(note)
+            } catch {
+                recordFailure("Could not load note at \(url.path)", error: error)
+            }
         }
 
-        // Sort by most recently updated
         loaded.sort { $0.updatedAt > $1.updatedAt }
-
-        self.notes = loaded
+        notes = loaded
         rebuildSearchIndex()
 
-        // Restore last current note or pick the most recent
         if currentNoteID == nil || !notes.contains(where: { $0.id == currentNoteID }) {
             currentNoteID = notes.first?.id
         }
     }
 
-    /// Allows the user (via Settings) to pick a completely different notes folder.
-    func changeNotesDirectory(to newURL: URL) {
-        UserDefaults.standard.set(newURL.path, forKey: "notesDirectoryPath")
-        notesDirectory = newURL
+    private static func ensureDirectoryExists(at url: URL, fileManager: FileManager) throws {
+        try fileManager.createDirectory(at: url, withIntermediateDirectories: true)
     }
 
-    // MARK: - Export helpers (used by Action Panel)
+    private func scheduleSave(_ note: Note) {
+        pendingSaveWorkItems[note.id]?.cancel()
+        pendingSaveSnapshots[note.id] = note
+        saveState = .saving
 
-    func exportNoteAsMarkdown(_ note: Note) -> URL? {
-        // In a real app we would use NSSavePanel. Here we just return the existing file URL.
-        return note.fileURL
+        let noteID = note.id
+        let workItem = DispatchWorkItem { [weak self] in
+            Task { @MainActor in
+                self?.performScheduledSave(for: noteID)
+            }
+        }
+
+        pendingSaveWorkItems[note.id] = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: workItem)
+    }
+
+    private func performScheduledSave(for id: UUID) {
+        pendingSaveWorkItems[id] = nil
+        guard let note = pendingSaveSnapshots.removeValue(forKey: id) else { return }
+        persist(note)
+    }
+
+    private func persist(_ note: Note) {
+        do {
+            try writeNoteToDisk(note)
+            saveState = .saved(Date())
+        } catch {
+            pendingSaveSnapshots[note.id] = note
+            saveState = .failed("Could not save \(note.fileURL.lastPathComponent)")
+            Self.logger.error("Save failed for \(note.fileURL.path, privacy: .public): \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    private func writeNoteToDisk(_ note: Note) throws {
+        try Self.ensureDirectoryExists(at: note.fileURL.deletingLastPathComponent(), fileManager: fileManager)
+        let data = note.content.data(using: .utf8) ?? Data()
+        try data.write(to: note.fileURL, options: .atomic)
+    }
+
+    private func cancelPendingSave(for id: UUID) {
+        pendingSaveWorkItems[id]?.cancel()
+        pendingSaveWorkItems[id] = nil
+        pendingSaveSnapshots[id] = nil
+    }
+
+    private func updateInMemory(_ note: Note) {
+        guard let idx = notes.firstIndex(where: { $0.id == note.id }) else { return }
+        notes[idx] = note
+    }
+
+    private func rebuildSearchIndex() {
+        searchIndex = Dictionary(uniqueKeysWithValues: notes.map { note in
+            (note.id, "\(note.title.lowercased()) \(note.content.lowercased())")
+        })
+    }
+
+    private func canonicalNoteURL(for url: URL) throws -> URL {
+        if (try? Self.noteID(from: url)) != nil {
+            return url
+        }
+
+        let id = UUID()
+        let newURL = notesDirectory.appendingPathComponent("note-\(id.uuidString).md")
+        try fileManager.moveItem(at: url, to: newURL)
+        Self.logger.info("Migrated note filename from \(url.lastPathComponent, privacy: .public) to \(newURL.lastPathComponent, privacy: .public)")
+        return newURL
+    }
+
+    private static func noteID(from url: URL) throws -> UUID {
+        let name = url.deletingPathExtension().lastPathComponent
+        guard name.hasPrefix("note-") else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+
+        let rawID = String(name.dropFirst("note-".count))
+        guard let id = UUID(uuidString: rawID) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        return id
+    }
+
+    private func recordFailure(_ message: String, error: Error) {
+        saveState = .failed(message)
+        Self.logger.error("\(message, privacy: .public): \(String(describing: error), privacy: .public)")
     }
 }

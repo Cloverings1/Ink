@@ -19,6 +19,8 @@ struct FloatingPanelRootView: View {
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .foregroundStyle(.secondary)
 
+                    SaveStatusView(state: noteStore.saveState)
+
                     Spacer()
 
                     HStack(spacing: 14) {
@@ -27,21 +29,21 @@ struct FloatingPanelRootView: View {
                         } label: {
                             Image(systemName: "command")
                         }
-                        .help("Action Panel (⌘K)")
+                        .help("Action Panel (⌥⌘K)")
 
                         Button {
                             controller.showBrowse()
                         } label: {
                             Image(systemName: "list.bullet.rectangle")
                         }
-                        .help("Browse Notes (⌘P)")
+                        .help("Browse Notes (⌥⌘P)")
 
                         Button {
                             controller.createAndShow()
                         } label: {
                             Image(systemName: "plus")
                         }
-                        .help("New Note (⌘N)")
+                        .help("New Note (⌥⌘N)")
 
                         Button {
                             controller.hide()
@@ -107,6 +109,32 @@ struct FloatingPanelRootView: View {
     }
 }
 
+struct SaveStatusView: View {
+    let state: NoteStore.SaveState
+
+    var body: some View {
+        switch state {
+        case .idle:
+            EmptyView()
+        case .saving:
+            Label("Saving", systemImage: "arrow.triangle.2.circlepath")
+                .foregroundStyle(.secondary)
+                .font(.caption2)
+        case .saved:
+            Label("Saved", systemImage: "checkmark.circle")
+                .foregroundStyle(.secondary)
+                .font(.caption2)
+        case .failed(let message):
+            Label(message, systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .font(.caption2)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .help(message)
+        }
+    }
+}
+
 // MARK: - Frosted background helper (matches the screenshots' aesthetic)
 
 struct VisualEffectBackground: NSViewRepresentable {
@@ -139,7 +167,7 @@ struct EmptyEditorPlaceholder: View {
                 .foregroundStyle(.secondary)
             Text("No note yet")
                 .font(.title3.weight(.medium))
-            Text("Press ⌘N or tap the button below to capture your first thought.")
+            Text("Press ⌥⌘N or tap the button below to capture your first thought.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

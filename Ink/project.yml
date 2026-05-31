@@ -85,6 +85,21 @@ targets:
           fi
         outputFiles: []
 
+  InkTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: Ink
+    settings:
+      base:
+        PRODUCT_NAME: InkTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.jonasbubela.InkTests
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+
 schemes:
   Ink:
     build:
@@ -94,6 +109,8 @@ schemes:
       config: Debug
     test:
       config: Debug
+      targets:
+        - InkTests
     profile:
       config: Release
     analyze:
