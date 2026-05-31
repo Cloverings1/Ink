@@ -241,6 +241,38 @@ final class NoteStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testDuplicateParsedNoteIDsAreRekeyedWithoutDroppingFiles() throws {
+        let store = NoteStore(notesDirectory: tempRoot)
+        let duplicateID = try XCTUnwrap(UUID(uuidString: "11111111-1111-1111-1111-111111111111"))
+        let olderDate = Date(timeIntervalSince1970: 1)
+        let newerDate = Date(timeIntervalSince1970: 2)
+
+        let older = Note(
+            id: duplicateID,
+            title: "Older",
+            content: "Older duplicate",
+            fileURL: tempRoot.appendingPathComponent("note-\(duplicateID.uuidString.lowercased()).md"),
+            createdAt: olderDate,
+            updatedAt: olderDate
+        )
+        let newer = Note(
+            id: duplicateID,
+            title: "Newer",
+            content: "Newer duplicate",
+            fileURL: tempRoot.appendingPathComponent("note-\(duplicateID.uuidString.uppercased()).md"),
+            createdAt: newerDate,
+            updatedAt: newerDate
+        )
+
+        let resolved = store.notesByResolvingDuplicateIDs([older, newer])
+
+        XCTAssertEqual(resolved.count, 2)
+        XCTAssertEqual(Set(resolved.map(\.id)).count, 2)
+        XCTAssertEqual(resolved.first { $0.title == "Newer" }?.id, duplicateID)
+        XCTAssertNotEqual(resolved.first { $0.title == "Older" }?.id, duplicateID)
+    }
+
+    @MainActor
     func testExternalDeletionRemovesCleanNote() throws {
         let store = NoteStore(notesDirectory: tempRoot)
         let note = try XCTUnwrap(store.createNewNote())

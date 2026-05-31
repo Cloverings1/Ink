@@ -210,6 +210,7 @@ final class NoteStore: ObservableObject {
 
     func loadNotes() throws {
         var loaded = try readNotesFromDisk()
+        loaded = notesByResolvingDuplicateIDs(loaded)
 
         loaded.sort { $0.updatedAt > $1.updatedAt }
         notes = loaded
@@ -223,7 +224,7 @@ final class NoteStore: ObservableObject {
 
     func reconcileExternalChanges() {
         do {
-            let diskNotes = try readNotesFromDisk()
+            let diskNotes = notesByResolvingDuplicateIDs(try readNotesFromDisk())
             let diskByID = Dictionary(uniqueKeysWithValues: diskNotes.map { ($0.id, $0) })
             let dirtyIDs = Set(pendingSaveSnapshots.keys)
 
@@ -259,6 +260,21 @@ final class NoteStore: ObservableObject {
         } catch {
             recordFailure("Could not refresh notes from \(notesDirectory.path)", error: error)
         }
+    }
+
+    func notesByResolvingDuplicateIDs(_ loaded: [Note]) -> [Note] {
+        var usedIDs = Set<UUID>()
+        var resolved: [Note] = []
+
+        for note in loaded.sorted(by: duplicatePreferredOrder) {
+            if usedIDs.insert(note.id).inserted {
+                resolved.append(note)
+            } else {
+                resolved.append(noteByRekeyingDuplicateID(note, usedIDs: &usedIDs))
+            }
+        }
+
+        return resolved
     }
 
     private static func ensureDirectoryExists(at url: URL, fileManager: FileManager) throws {
@@ -486,6 +502,37 @@ final class NoteStore: ObservableObject {
         if currentNoteID == id {
             currentNoteID = notes.first?.id
         }
+    }
+
+    private func duplicatePreferredOrder(_ lhs: Note, _ rhs: Note) -> Bool {
+        if lhs.updatedAt != rhs.updatedAt {
+            return lhs.updatedAt > rhs.updatedAt
+        }
+        return lhs.fileURL.lastPathComponent.localizedStandardCompare(rhs.fileURL.lastPathComponent) == .orderedAscending
+    }
+
+    private func noteByRekeyingDuplicateID(_ note: Note, usedIDs: inout Set<UUID>) -> Note {
+        let basePath = relativeNotePath(for: note.fileURL)
+        var suffix = 1
+        var replacementID: UUID
+
+        repeat {
+            let stablePath = suffix == 1
+                ? "duplicate-note-id:\(basePath)"
+                : "duplicate-note-id:\(basePath)#\(suffix)"
+            replacementID = Self.deterministicID(for: stablePath)
+            suffix += 1
+        } while usedIDs.contains(replacementID)
+
+        usedIDs.insert(replacementID)
+        return Note(
+            id: replacementID,
+            title: note.title,
+            content: note.content,
+            fileURL: note.fileURL,
+            createdAt: note.createdAt,
+            updatedAt: note.updatedAt
+        )
     }
 
     private func rebuildSearchIndex() {
