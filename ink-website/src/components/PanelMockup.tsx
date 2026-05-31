@@ -1,10 +1,15 @@
-export function PanelMockup() {
+import type { Accent } from '../variants/types'
+import { accentClasses } from '../variants/types'
+
+export function PanelMockup({ accent = 'red' }: { accent?: Accent }) {
+  const a = accentClasses[accent]
+
   return (
     <div
       className="animate-float-panel relative mx-auto w-full max-w-2xl select-none"
       aria-hidden
     >
-      <div className="pointer-events-none absolute -inset-x-8 -top-6 h-24 bg-ink-red/20 blur-3xl" />
+      <div className={`pointer-events-none absolute -inset-x-8 -top-6 h-24 blur-3xl ${a.glow}`} />
       <div className="glass-card relative overflow-hidden rounded-2xl border border-white/10 shadow-[0_32px_80px_-24px_rgba(0,0,0,0.85)]">
         <div className="flex items-center gap-2 border-b border-white/[0.06] px-4 py-3">
           <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
@@ -22,7 +27,7 @@ export function PanelMockup() {
             <p>- Keep notes as plain Markdown files</p>
             <p>- Auto-save to ~/Library/.../Ink/Notes</p>
           </div>
-          <p className="inline-block h-4 w-0.5 animate-pulse bg-ink-red" />
+          <p className={`inline-block h-4 w-0.5 animate-pulse ${a.bg}`} />
         </div>
         <div className="flex items-center justify-between border-t border-white/[0.06] px-5 py-3 text-[11px] font-semibold text-zinc-400">
           <div className="flex gap-3">
@@ -35,8 +40,10 @@ export function PanelMockup() {
           <span className="font-mono text-[10px] text-zinc-600">saved</span>
         </div>
       </div>
-      <div className="absolute -right-2 -top-3 rounded-full border border-ink-red/35 bg-ink-red/15 px-3 py-1 font-mono text-[11px] font-semibold text-[#ffb4b4] shadow-[0_0_24px_rgba(255,75,75,0.2)]">
-        ⌘N
+      <div
+        className={`absolute -right-2 -top-3 rounded-full border px-3 py-1 font-mono text-[11px] font-semibold shadow-[0_0_24px_rgba(255,75,75,0.2)] ${a.kbd}`}
+      >
+        ⌥⌘N
       </div>
     </div>
   )

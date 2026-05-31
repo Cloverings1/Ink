@@ -1,0 +1,10 @@
+{
+  "redirects": [{ "source": "/", "destination": "/ink/", "permanent": false }],
+  "rewrites": [
+    { "source": "/ink/assets/:path*", "destination": "/assets/:path*" },
+    { "source": "/ink/:file(favicon\\.svg|icons\\.svg|ink-icon\\.png|panel-demo\\.svg)", "destination": "/:file" },
+    { "source": "/ink", "destination": "/index.html" },
+    { "source": "/ink/", "destination": "/index.html" },
+    { "source": "/ink/:path*", "destination": "/index.html" }
+  ]
+}
