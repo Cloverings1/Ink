@@ -1,7 +1,6 @@
 import XCTest
 @testable import Ink
 
-@MainActor
 final class NoteStoreTests: XCTestCase {
     private var tempRoot: URL!
 
@@ -19,6 +18,7 @@ final class NoteStoreTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: "notesDirectoryPath")
     }
 
+    @MainActor
     func testCreateNewNoteFlushesPreviousNote() throws {
         let store = NoteStore(notesDirectory: tempRoot)
         let first = try XCTUnwrap(store.createNewNote())
@@ -30,6 +30,7 @@ final class NoteStoreTests: XCTestCase {
         XCTAssertEqual(saved, "# First\nUnsaved before new note")
     }
 
+    @MainActor
     func testSelectingNoteFlushesPreviousNote() throws {
         let store = NoteStore(notesDirectory: tempRoot)
         let first = try XCTUnwrap(store.createNewNote())
@@ -43,6 +44,7 @@ final class NoteStoreTests: XCTestCase {
         XCTAssertEqual(saved, "First pending content")
     }
 
+    @MainActor
     func testDeletingNoteMovesFileToTrashAndCancelsPendingSave() throws {
         let trashFolder = tempRoot.appendingPathComponent("Trash", isDirectory: true)
         try FileManager.default.createDirectory(at: trashFolder, withIntermediateDirectories: true)
@@ -65,6 +67,7 @@ final class NoteStoreTests: XCTestCase {
         XCTAssertEqual(try String(contentsOf: movedFile, encoding: .utf8), "")
     }
 
+    @MainActor
     func testChangingFolderFlushesAndReloads() throws {
         let firstFolder = tempRoot.appendingPathComponent("First", isDirectory: true)
         let secondFolder = tempRoot.appendingPathComponent("Second", isDirectory: true)
@@ -82,6 +85,7 @@ final class NoteStoreTests: XCTestCase {
         XCTAssertTrue(store.notes.isEmpty)
     }
 
+    @MainActor
     func testExistingMarkdownFilesKeepTheirFilenames() throws {
         let existing = tempRoot.appendingPathComponent("meeting-notes.md")
         try "Existing content".write(to: existing, atomically: true, encoding: .utf8)
@@ -105,6 +109,7 @@ final class NoteStoreTests: XCTestCase {
         XCTAssertEqual(reloaded.notes.first?.id, note.id)
     }
 
+    @MainActor
     func testCreateNewNoteDoesNotSelectUnsavedNoteWhenWriteFails() throws {
         let fileURL = tempRoot.appendingPathComponent("not-a-folder")
         try "not a directory".write(to: fileURL, atomically: true, encoding: .utf8)
@@ -118,6 +123,7 @@ final class NoteStoreTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.appendingPathComponent("Ink").path))
     }
 
+    @MainActor
     func testCleanExternalEditReloadsWithoutOverwrite() throws {
         let store = NoteStore(notesDirectory: tempRoot)
         let note = try XCTUnwrap(store.createNewNote())
@@ -133,6 +139,7 @@ final class NoteStoreTests: XCTestCase {
         XCTAssertEqual(store.searchNotes(query: "elsewhere").first?.id, note.id)
     }
 
+    @MainActor
     func testPendingInkEditDoesNotOverwriteExternalEdit() throws {
         let store = NoteStore(notesDirectory: tempRoot)
         let note = try XCTUnwrap(store.createNewNote())
@@ -157,6 +164,7 @@ final class NoteStoreTests: XCTestCase {
         XCTAssertEqual(store.currentNote?.content, "Ink local edit")
     }
 
+    @MainActor
     func testExternalNewMarkdownFileAppearsAfterReconcile() throws {
         let store = NoteStore(notesDirectory: tempRoot)
         XCTAssertTrue(store.notes.isEmpty)
@@ -174,6 +182,7 @@ final class NoteStoreTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testExternalDeletionRemovesCleanNote() throws {
         let store = NoteStore(notesDirectory: tempRoot)
         let note = try XCTUnwrap(store.createNewNote())
@@ -187,6 +196,7 @@ final class NoteStoreTests: XCTestCase {
         XCTAssertNil(store.currentNoteID)
     }
 
+    @MainActor
     func testExternalDeletionPreservesDirtyNoteAsConflictCopy() throws {
         let store = NoteStore(notesDirectory: tempRoot)
         let note = try XCTUnwrap(store.createNewNote())
