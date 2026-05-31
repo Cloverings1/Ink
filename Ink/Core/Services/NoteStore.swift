@@ -102,7 +102,7 @@ final class NoteStore: ObservableObject {
         note.title = Note.deriveTitle(from: newContent)
 
         updateInMemory(note)
-        rebuildSearchIndex()
+        updateSearchIndex(for: note)
         scheduleSave(note)
     }
 
@@ -413,8 +413,16 @@ final class NoteStore: ObservableObject {
 
     private func rebuildSearchIndex() {
         searchIndex = Dictionary(uniqueKeysWithValues: notes.map { note in
-            (note.id, "\(note.title.lowercased()) \(note.content.lowercased())")
+            (note.id, indexText(for: note))
         })
+    }
+
+    private func updateSearchIndex(for note: Note) {
+        searchIndex[note.id] = indexText(for: note)
+    }
+
+    private func indexText(for note: Note) -> String {
+        "\(note.title.lowercased()) \(note.content.lowercased())"
     }
 
     private func noteID(for url: URL) -> UUID {
