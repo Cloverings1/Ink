@@ -93,7 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(shortcutItem(title: "Browse Notes (⌥⌘P)", action: #selector(browseNotes), key: "p"))
         menu.addItem(shortcutItem(title: "Action Panel (⌥⌘K)", action: #selector(showActions), key: "k"))
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ","))
+        menu.addItem(NSMenuItem(title: "Settings...", action: #selector(openSettings(_:)), keyEquivalent: ","))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Ink", action: #selector(quit), keyEquivalent: "q"))
 
@@ -123,10 +123,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panelController?.showActionPanel()
     }
 
-    @objc private func openSettings() {
-        // In a real app we would bring up the Settings scene.
-        // For now just show the panel in a future settings tab.
-        panelController?.showEditor()
+    @objc private func openSettings(_ sender: Any?) {
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: sender)
     }
 
     @objc private func quit() {
