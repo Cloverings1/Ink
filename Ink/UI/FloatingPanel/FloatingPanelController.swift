@@ -19,11 +19,11 @@ final class FloatingPanelController: ObservableObject {
 
     // What the panel is currently showing
     @Published var mode: PanelMode = .editor
+    @Published var isActionPanelPresented = false
 
     enum PanelMode {
         case editor
         case browse
-        case actionPalette   // overlay on top of current mode
     }
 
     // Last known frame so we can restore position
@@ -57,6 +57,7 @@ final class FloatingPanelController: ObservableObject {
 
     /// Shows the panel with the editor focused on the current (or newly created) note.
     func showEditor() {
+        isActionPanelPresented = false
         mode = .editor
         ensurePanelExistsAndShow()
         // Focus the text editor after a tiny delay so the view is in the hierarchy
@@ -68,6 +69,7 @@ final class FloatingPanelController: ObservableObject {
 
     /// Shows the panel in browse/search mode (⌥⌘P behavior).
     func showBrowse() {
+        isActionPanelPresented = false
         mode = .browse
         ensurePanelExistsAndShow()
     }
@@ -97,19 +99,21 @@ final class FloatingPanelController: ObservableObject {
     }
 
     func showActionPanel() {
-        // We keep the underlying mode (editor or browse) and just overlay the palette
-        mode = .actionPalette
+        isActionPanelPresented = true
         ensurePanelExistsAndShow()
     }
 
     func dismissActionPanel() {
-        // Go back to whatever we were doing
-        mode = (noteStore.currentNote != nil) ? .editor : .browse
+        isActionPanelPresented = false
+        if mode == .editor {
+            NotificationCenter.default.post(name: .focusEditor, object: nil)
+        }
     }
 
     /// Completely hides the floating panel.
     func hide() {
         noteStore.flushPendingSaves()
+        isActionPanelPresented = false
         panel?.close()
         panel = nil   // we recreate on next show (cheap and avoids state issues)
     }

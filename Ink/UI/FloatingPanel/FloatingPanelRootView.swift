@@ -77,31 +77,19 @@ struct FloatingPanelRootView: View {
 
                     case .browse:
                         NotesBrowserView()
-
-                    case .actionPalette:
-                        // Action palette is rendered as an overlay on whatever was underneath
-                        ZStack {
-                            // Dim the background slightly
-                            Color.black.opacity(0.25)
-                                .ignoresSafeArea()
-
-                            if let note = noteStore.currentNote {
-                                InkEditorView(note: note)
-                                    .id(note.id)
-                                    .blur(radius: 1.5)
-                            } else {
-                                NotesBrowserView()
-                                    .blur(radius: 1.5)
-                            }
-
-                            ActionPanelView(onDismiss: {
-                                controller.dismissActionPanel()
-                            })
-                            .transition(.scale(scale: 0.95).combined(with: .opacity))
-                        }
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+
+            if controller.isActionPanelPresented {
+                Color.black.opacity(0.25)
+                    .ignoresSafeArea()
+
+                ActionPanelView(onDismiss: {
+                    controller.dismissActionPanel()
+                })
+                .transition(.scale(scale: 0.95).combined(with: .opacity))
             }
         }
         .frame(minWidth: 620, minHeight: 420)
