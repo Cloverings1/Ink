@@ -46,24 +46,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // 4. On first launch, create a welcome note so the app feels alive immediately
         if noteStore?.notes.isEmpty == true {
-            _ = noteStore?.createNewNote()
-            let content = """
-            # Welcome to Ink
+            if noteStore?.createNewNote() != nil {
+                let content = """
+                # Welcome to Ink
 
-            This is your first note. Everything you write here is stored as a plain **Markdown** file on your Mac.
+                This is your first note. Everything you write here is stored as a plain **Markdown** file on your Mac.
 
-            - Press **⌥⌘N** from anywhere to create a new note instantly.
-            - Press **⌥⌘P** to browse and search all your notes.
-            - Press **⌥⌘K** to open the Action Panel.
+                - Press **⌥⌘N** from anywhere to create a new note instantly.
+                - Press **⌥⌘P** to browse and search all your notes.
+                - Press **⌥⌘K** to open the Action Panel.
 
-            Your notes live here:
-            \(noteStore?.notesDirectory.path ?? "")
+                Your notes live here:
+                \(noteStore?.notesDirectory.path ?? "")
 
-            You own your data — open the files in any editor, Obsidian, VS Code, or git them.
+                You own your data — open the files in any editor, Obsidian, VS Code, or git them.
 
-            Happy thinking.
-            """
-            noteStore?.updateCurrentNoteContent(content)
+                Happy thinking.
+                """
+                noteStore?.updateCurrentNoteContent(content)
+            }
         }
 
         // 5. Show the panel on launch (great for first-run delight)

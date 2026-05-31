@@ -21,7 +21,7 @@ final class NoteStoreTests: XCTestCase {
 
     func testCreateNewNoteFlushesPreviousNote() throws {
         let store = NoteStore(notesDirectory: tempRoot)
-        let first = store.createNewNote()
+        let first = try XCTUnwrap(store.createNewNote())
         store.updateCurrentNoteContent("# First\nUnsaved before new note")
 
         _ = store.createNewNote()
@@ -32,8 +32,8 @@ final class NoteStoreTests: XCTestCase {
 
     func testSelectingNoteFlushesPreviousNote() throws {
         let store = NoteStore(notesDirectory: tempRoot)
-        let first = store.createNewNote()
-        let second = store.createNewNote()
+        let first = try XCTUnwrap(store.createNewNote())
+        let second = try XCTUnwrap(store.createNewNote())
         store.selectNote(id: first.id)
         store.updateCurrentNoteContent("First pending content")
 
@@ -45,7 +45,7 @@ final class NoteStoreTests: XCTestCase {
 
     func testDeletingNoteCancelsPendingSave() throws {
         let store = NoteStore(notesDirectory: tempRoot)
-        let note = store.createNewNote()
+        let note = try XCTUnwrap(store.createNewNote())
         store.updateCurrentNoteContent("This should not come back")
 
         store.deleteNote(id: note.id)
@@ -60,7 +60,7 @@ final class NoteStoreTests: XCTestCase {
         try FileManager.default.createDirectory(at: secondFolder, withIntermediateDirectories: true)
 
         let store = NoteStore(notesDirectory: firstFolder)
-        let note = store.createNewNote()
+        let note = try XCTUnwrap(store.createNewNote())
         store.updateCurrentNoteContent("Saved before moving folders")
 
         store.changeNotesDirectory(to: secondFolder)
@@ -92,5 +92,18 @@ final class NoteStoreTests: XCTestCase {
 
         let reloaded = NoteStore(notesDirectory: tempRoot)
         XCTAssertEqual(reloaded.notes.first?.id, note.id)
+    }
+
+    func testCreateNewNoteDoesNotSelectUnsavedNoteWhenWriteFails() throws {
+        let fileURL = tempRoot.appendingPathComponent("not-a-folder")
+        try "not a directory".write(to: fileURL, atomically: true, encoding: .utf8)
+
+        let store = NoteStore(notesDirectory: fileURL)
+        let note = store.createNewNote()
+
+        XCTAssertNil(note)
+        XCTAssertNil(store.currentNoteID)
+        XCTAssertTrue(store.notes.isEmpty)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.appendingPathComponent("Ink").path))
     }
 }

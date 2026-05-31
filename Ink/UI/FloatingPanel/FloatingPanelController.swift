@@ -74,8 +74,11 @@ final class FloatingPanelController: ObservableObject {
 
     /// Creates a fresh note and immediately shows the editor.
     func createAndShow() {
-        _ = noteStore.createNewNote()
-        showEditor()
+        if noteStore.createNewNote() != nil {
+            showEditor()
+        } else {
+            ensurePanelExistsAndShow()
+        }
     }
 
     /// Toggles between editor and browse, or shows the panel if it was hidden.

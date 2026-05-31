@@ -14,8 +14,9 @@ struct ActionPanelView: View {
     private var commands: [Command] {
         let all: [Command] = [
             Command(title: "New Note", subtitle: nil, shortcut: "⌥⌘N", action: {
-                _ = noteStore.createNewNote()
-                controller.showEditor()
+                if noteStore.createNewNote() != nil {
+                    controller.showEditor()
+                }
                 onDismiss()
             }),
             Command(title: "Browse Notes", subtitle: nil, shortcut: "⌥⌘P", action: {

@@ -58,7 +58,7 @@ final class NoteStore: ObservableObject {
     }
 
     @discardableResult
-    func createNewNote() -> Note {
+    func createNewNote() -> Note? {
         flushPendingSaves()
 
         let note = Note.new(in: notesDirectory)
@@ -67,6 +67,7 @@ final class NoteStore: ObservableObject {
             saveState = .saved(Date())
         } catch {
             recordFailure("Could not create note at \(note.fileURL.path)", error: error)
+            return nil
         }
 
         notes.append(note)
