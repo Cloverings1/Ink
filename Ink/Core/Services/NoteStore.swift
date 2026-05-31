@@ -28,6 +28,23 @@ final class NoteStore: ObservableObject {
 
     private static let logger = Logger(subsystem: "com.jonasbubela.Ink", category: "NoteStore")
     private static let notesDirectoryKey = "notesDirectoryPath"
+    private static let noteResourceKeys: Set<URLResourceKey> = [
+        .creationDateKey,
+        .contentModificationDateKey,
+        .isRegularFileKey,
+        .isSymbolicLinkKey
+    ]
+
+    private enum NoteImportError: Error, CustomStringConvertible {
+        case unsafeFile(URL, String)
+
+        var description: String {
+            switch self {
+            case let .unsafeFile(url, reason):
+                return "Skipped \(url.lastPathComponent): \(reason)"
+            }
+        }
+    }
 
     static var defaultNotesDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -289,7 +306,7 @@ final class NoteStore: ObservableObject {
 
         let urls = try fileManager.contentsOfDirectory(
             at: notesDirectory,
-            includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
+            includingPropertiesForKeys: Array(Self.noteResourceKeys),
             options: [.skipsHiddenFiles]
         )
         .filter { $0.pathExtension.lowercased() == "md" }
@@ -298,7 +315,8 @@ final class NoteStore: ObservableObject {
 
         for url in urls {
             do {
-                loaded.append(try readNote(at: url))
+                let resourceValues = try validateNoteFile(at: url)
+                loaded.append(try readNote(at: url, resourceValues: resourceValues))
             } catch {
                 recordFailure("Could not load note at \(url.path)", error: error)
             }
@@ -307,17 +325,41 @@ final class NoteStore: ObservableObject {
         return loaded
     }
 
-    private func readNote(at url: URL) throws -> Note {
+    private func validateNoteFile(at url: URL) throws -> URLResourceValues {
+        let resourceValues = try url.resourceValues(forKeys: Self.noteResourceKeys)
+
+        if resourceValues.isSymbolicLink == true {
+            throw NoteImportError.unsafeFile(url, "symbolic links are not imported as notes")
+        }
+
+        if resourceValues.isRegularFile != true {
+            throw NoteImportError.unsafeFile(url, "only regular Markdown files are imported as notes")
+        }
+
+        guard isInsideNotesDirectory(url) else {
+            throw NoteImportError.unsafeFile(url, "resolved path is outside the notes folder")
+        }
+
+        return resourceValues
+    }
+
+    private func isInsideNotesDirectory(_ url: URL) -> Bool {
+        let folderPath = notesDirectory.resolvingSymlinksInPath().standardizedFileURL.path
+        let filePath = url.resolvingSymlinksInPath().standardizedFileURL.path
+        let prefix = folderPath.hasSuffix("/") ? folderPath : folderPath + "/"
+        return filePath.hasPrefix(prefix)
+    }
+
+    private func readNote(at url: URL, resourceValues: URLResourceValues) throws -> Note {
         let content = try String(contentsOf: url, encoding: .utf8)
-        let attrs = try? url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
 
         return Note(
             id: noteID(for: url),
             title: Note.deriveTitle(from: content),
             content: content,
             fileURL: url,
-            createdAt: attrs?.creationDate ?? Date(),
-            updatedAt: attrs?.contentModificationDate ?? Date()
+            createdAt: resourceValues.creationDate ?? Date(),
+            updatedAt: resourceValues.contentModificationDate ?? Date()
         )
     }
 
@@ -438,8 +480,8 @@ final class NoteStore: ObservableObject {
     }
 
     private func relativeNotePath(for url: URL) -> String {
-        let folderPath = notesDirectory.standardizedFileURL.path
-        let filePath = url.standardizedFileURL.path
+        let folderPath = notesDirectory.resolvingSymlinksInPath().standardizedFileURL.path
+        let filePath = url.resolvingSymlinksInPath().standardizedFileURL.path
         let prefix = folderPath.hasSuffix("/") ? folderPath : folderPath + "/"
         if filePath.hasPrefix(prefix) {
             return String(filePath.dropFirst(prefix.count))

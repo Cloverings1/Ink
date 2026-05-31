@@ -183,6 +183,29 @@ final class NoteStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testSymlinkedMarkdownFileIsNotImported() throws {
+        let safe = tempRoot.appendingPathComponent("safe.md")
+        try "# Safe\nExpected content".write(to: safe, atomically: true, encoding: .utf8)
+
+        let outside = tempRoot
+            .deletingLastPathComponent()
+            .appendingPathComponent("outside-\(UUID().uuidString).md")
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: outside)
+        }
+        try "# Secret\nShould not be imported".write(to: outside, atomically: true, encoding: .utf8)
+
+        let symlink = tempRoot.appendingPathComponent("linked-secret.md")
+        try FileManager.default.createSymbolicLink(at: symlink, withDestinationURL: outside)
+
+        let store = NoteStore(notesDirectory: tempRoot)
+
+        XCTAssertEqual(store.notes.count, 1)
+        XCTAssertEqual(store.notes.first?.fileURL.standardizedFileURL, safe.standardizedFileURL)
+        XCTAssertEqual(store.searchNotes(query: "secret").count, 0)
+    }
+
+    @MainActor
     func testExternalDeletionRemovesCleanNote() throws {
         let store = NoteStore(notesDirectory: tempRoot)
         let note = try XCTUnwrap(store.createNewNote())
