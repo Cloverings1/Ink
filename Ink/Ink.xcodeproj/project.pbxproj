@@ -1,0 +1,602 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0F7143270EA4BDB26746204B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8D3C78544D29FEF78762B069 /* Assets.xcassets */; };
+		18E719155395CD6FD6EC9559 /* NotesBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC143C327FE2B414AA0660AA /* NotesBrowserView.swift */; };
+		197D525C5767121D5DECBD20 /* NoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1646080C5D3F15694E3C1A58 /* NoteStore.swift */; };
+		2D7BD990D9C69594C94AA8B1 /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 936A0BC9BC178F2B2BF4E920 /* Note.swift */; };
+		34C7EAB6A342F8FF9A0F3301 /* Ink.icns in Resources */ = {isa = PBXBuildFile; fileRef = EFE07C077DDB8F684A9B4225 /* Ink.icns */; };
+		4003FA2F5867F862DF9B7D09 /* InkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB154B9C1F66359005CA6F2A /* InkApp.swift */; };
+		5CD0A20F211523A2CEE90CDF /* FloatingPanelRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83A9B16630B7CF09AC1DF79A /* FloatingPanelRootView.swift */; };
+		5EBBE28352F0D92D5BF32D99 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = BB2A4D9722BF92B444B92F6E /* KeyboardShortcuts */; };
+		7923B9183CCC68778EDFCF73 /* FloatingNotePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804A5B68DC36F96C06413AFA /* FloatingNotePanel.swift */; };
+		A1E39A694CE9D5A436994153 /* NoteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A289CB181D3963AF8F10843 /* NoteStoreTests.swift */; };
+		A8DBDBB54460A501BBD0CB32 /* FloatingPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74DBECA606A2C7A54EC6E0DB /* FloatingPanelController.swift */; };
+		B3FE4386EBCA6CCE6CD2772B /* ActionPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA8E8B48C75255D85DDFF48 /* ActionPanelView.swift */; };
+		B9CCBF0B6992C38BFE5D3A75 /* InkEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D947B9AF31776274D60003 /* InkEditorView.swift */; };
+		DEB93AE7FB34605877F5E754 /* KeyboardShortcuts+Ink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38BE4FFB225AA4BD13C83FCF /* KeyboardShortcuts+Ink.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4261D92C7A5489B3CB9583A7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1AC8DF0946DDDC5284848660 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AD5572C833509F93411AFE87;
+			remoteInfo = Ink;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		14E67513D7ED347458AA50DD /* InkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1646080C5D3F15694E3C1A58 /* NoteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteStore.swift; sourceTree = "<group>"; };
+		38BE4FFB225AA4BD13C83FCF /* KeyboardShortcuts+Ink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardShortcuts+Ink.swift"; sourceTree = "<group>"; };
+		3EA8E8B48C75255D85DDFF48 /* ActionPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionPanelView.swift; sourceTree = "<group>"; };
+		560F8A160920F3DEC461B2B6 /* Ink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ink.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5A289CB181D3963AF8F10843 /* NoteStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteStoreTests.swift; sourceTree = "<group>"; };
+		68D947B9AF31776274D60003 /* InkEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InkEditorView.swift; sourceTree = "<group>"; };
+		74DBECA606A2C7A54EC6E0DB /* FloatingPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanelController.swift; sourceTree = "<group>"; };
+		804A5B68DC36F96C06413AFA /* FloatingNotePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingNotePanel.swift; sourceTree = "<group>"; };
+		83A9B16630B7CF09AC1DF79A /* FloatingPanelRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanelRootView.swift; sourceTree = "<group>"; };
+		8D3C78544D29FEF78762B069 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		936A0BC9BC178F2B2BF4E920 /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
+		CC143C327FE2B414AA0660AA /* NotesBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesBrowserView.swift; sourceTree = "<group>"; };
+		EFE07C077DDB8F684A9B4225 /* Ink.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Ink.icns; sourceTree = "<group>"; };
+		FB154B9C1F66359005CA6F2A /* InkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InkApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9255043D2ED0AFF6DECE4D45 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5EBBE28352F0D92D5BF32D99 /* KeyboardShortcuts in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		02C4B4B12947D12F2CFE5085 /* Browse */ = {
+			isa = PBXGroup;
+			children = (
+				CC143C327FE2B414AA0660AA /* NotesBrowserView.swift */,
+			);
+			path = Browse;
+			sourceTree = "<group>";
+		};
+		34B8B3652A3DCE35CE06E6D9 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				1646080C5D3F15694E3C1A58 /* NoteStore.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		66E8D17BD9C2B12B5E06D0F0 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				936A0BC9BC178F2B2BF4E920 /* Note.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		6911CAE1B041B6B37DFE2B81 /* Editor */ = {
+			isa = PBXGroup;
+			children = (
+				68D947B9AF31776274D60003 /* InkEditorView.swift */,
+			);
+			path = Editor;
+			sourceTree = "<group>";
+		};
+		6CA4EBCC6F36A98404D3284E /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				02C4B4B12947D12F2CFE5085 /* Browse */,
+				E32B55AA97D5012BB2B14932 /* CommandPalette */,
+				6911CAE1B041B6B37DFE2B81 /* Editor */,
+				BD07ECABEA5D5FF41A3679CC /* FloatingPanel */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		8A55AD9F86BD7886BF1C306B /* Icons */ = {
+			isa = PBXGroup;
+			children = (
+				EFE07C077DDB8F684A9B4225 /* Ink.icns */,
+			);
+			path = Icons;
+			sourceTree = "<group>";
+		};
+		97E96555378B51B8C143C5E0 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				38BE4FFB225AA4BD13C83FCF /* KeyboardShortcuts+Ink.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		ABE71FB8084BFAE50B99E763 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				560F8A160920F3DEC461B2B6 /* Ink.app */,
+				14E67513D7ED347458AA50DD /* InkTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		BD07ECABEA5D5FF41A3679CC /* FloatingPanel */ = {
+			isa = PBXGroup;
+			children = (
+				804A5B68DC36F96C06413AFA /* FloatingNotePanel.swift */,
+				74DBECA606A2C7A54EC6E0DB /* FloatingPanelController.swift */,
+				83A9B16630B7CF09AC1DF79A /* FloatingPanelRootView.swift */,
+			);
+			path = FloatingPanel;
+			sourceTree = "<group>";
+		};
+		C9A7D4DA04113256921D0347 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				66E8D17BD9C2B12B5E06D0F0 /* Models */,
+				34B8B3652A3DCE35CE06E6D9 /* Services */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		CFAE848F8D51802F1948B2E7 = {
+			isa = PBXGroup;
+			children = (
+				FB154B9C1F66359005CA6F2A /* InkApp.swift */,
+				97E96555378B51B8C143C5E0 /* App */,
+				C9A7D4DA04113256921D0347 /* Core */,
+				E46B94F2862DBFA69D98AC4B /* Resources */,
+				ECB8E9CB155E5DCE02D80300 /* Tests */,
+				6CA4EBCC6F36A98404D3284E /* UI */,
+				ABE71FB8084BFAE50B99E763 /* Products */,
+			);
+			indentWidth = 4;
+			sourceTree = "<group>";
+			tabWidth = 4;
+		};
+		E32B55AA97D5012BB2B14932 /* CommandPalette */ = {
+			isa = PBXGroup;
+			children = (
+				3EA8E8B48C75255D85DDFF48 /* ActionPanelView.swift */,
+			);
+			path = CommandPalette;
+			sourceTree = "<group>";
+		};
+		E46B94F2862DBFA69D98AC4B /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				8D3C78544D29FEF78762B069 /* Assets.xcassets */,
+				8A55AD9F86BD7886BF1C306B /* Icons */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		ECB8E9CB155E5DCE02D80300 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				5A289CB181D3963AF8F10843 /* NoteStoreTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4ED147175ED8E71182010DCA /* InkTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6786897F88ABA7337529A917 /* Build configuration list for PBXNativeTarget "InkTests" */;
+			buildPhases = (
+				076996B9D8DB06AAD5B7E351 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				23D0416401790720BA771E3D /* PBXTargetDependency */,
+			);
+			name = InkTests;
+			packageProductDependencies = (
+			);
+			productName = InkTests;
+			productReference = 14E67513D7ED347458AA50DD /* InkTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		AD5572C833509F93411AFE87 /* Ink */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EAE436EA7080CA8595DC963D /* Build configuration list for PBXNativeTarget "Ink" */;
+			buildPhases = (
+				101139FEC310C2B1959498FD /* Sources */,
+				4A2DEB22D8BEA6A12F4C3BB4 /* Resources */,
+				9255043D2ED0AFF6DECE4D45 /* Frameworks */,
+				F184ABA53FBB135F3E0158FF /* Copy Release Build to Test Folder */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Ink;
+			packageProductDependencies = (
+				BB2A4D9722BF92B444B92F6E /* KeyboardShortcuts */,
+			);
+			productName = Ink;
+			productReference = 560F8A160920F3DEC461B2B6 /* Ink.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1AC8DF0946DDDC5284848660 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					AD5572C833509F93411AFE87 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 95224DE6E757423E6B5F6CBD /* Build configuration list for PBXProject "Ink" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = CFAE848F8D51802F1948B2E7;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				DE8C24BADEE2BA60080F3AAB /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = ABE71FB8084BFAE50B99E763 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AD5572C833509F93411AFE87 /* Ink */,
+				4ED147175ED8E71182010DCA /* InkTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4A2DEB22D8BEA6A12F4C3BB4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0F7143270EA4BDB26746204B /* Assets.xcassets in Resources */,
+				34C7EAB6A342F8FF9A0F3301 /* Ink.icns in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		F184ABA53FBB135F3E0158FF /* Copy Release Build to Test Folder */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Release Build to Test Folder";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"${CONFIGURATION}\" = \"Release\" ]; then\n  # Portable path (relative to the project) so no absolute user paths\n  # leak into the public repo.\n  DEST_DIR=\"${SRCROOT}/../Ink Builds/Ink builds/${MARKETING_VERSION}\"\n  DEST_APP=\"$DEST_DIR/Ink-${MARKETING_VERSION}.app\"\n\n  mkdir -p \"$DEST_DIR\"\n  rm -rf \"$DEST_APP\"\n\n  cp -R \"${BUILT_PRODUCTS_DIR}/Ink.app\" \"$DEST_APP\"\n\n  # If the build wasn't signed with a real Developer ID/team, apply an\n  # ad-hoc signature so the copied app launches locally without the\n  # \"damaged or incomplete\" Gatekeeper error.\n  if ! codesign -dv \"$DEST_APP\" >/dev/null 2>&1; then\n    codesign --force --deep --sign - \"$DEST_APP\" || true\n  fi\n  xattr -dr com.apple.quarantine \"$DEST_APP\" 2>/dev/null || true\n\n  echo \"✅ Successfully copied build to:\"\n  echo \"   $DEST_APP\"\n  echo \"\"\n  echo \"You can now launch it from that location.\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		076996B9D8DB06AAD5B7E351 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1E39A694CE9D5A436994153 /* NoteStoreTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		101139FEC310C2B1959498FD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B3FE4386EBCA6CCE6CD2772B /* ActionPanelView.swift in Sources */,
+				7923B9183CCC68778EDFCF73 /* FloatingNotePanel.swift in Sources */,
+				A8DBDBB54460A501BBD0CB32 /* FloatingPanelController.swift in Sources */,
+				5CD0A20F211523A2CEE90CDF /* FloatingPanelRootView.swift in Sources */,
+				4003FA2F5867F862DF9B7D09 /* InkApp.swift in Sources */,
+				B9CCBF0B6992C38BFE5D3A75 /* InkEditorView.swift in Sources */,
+				DEB93AE7FB34605877F5E754 /* KeyboardShortcuts+Ink.swift in Sources */,
+				2D7BD990D9C69594C94AA8B1 /* Note.swift in Sources */,
+				197D525C5767121D5DECBD20 /* NoteStore.swift in Sources */,
+				18E719155395CD6FD6EC9559 /* NotesBrowserView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		23D0416401790720BA771E3D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AD5572C833509F93411AFE87 /* Ink */;
+			targetProxy = 4261D92C7A5489B3CB9583A7 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0C28196472A1537A43461A23 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		23605F0317AC919D0492C7CC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jonasbubela.InkTests;
+				PRODUCT_NAME = InkTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ink.app/Contents/MacOS/Ink";
+			};
+			name = Release;
+		};
+		3C40C075D14A4D05AA2D1E03 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Ink.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 2;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_LSUIElement = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jonasbubela.Ink;
+				PRODUCT_NAME = Ink;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		4E2638ED4C3B2CA6A85E0BB6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Ink.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 2;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_LSUIElement = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jonasbubela.Ink;
+				PRODUCT_NAME = Ink;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		56B4B50F688BFC6D41EB7699 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jonasbubela.InkTests;
+				PRODUCT_NAME = InkTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Ink.app/Contents/MacOS/Ink";
+			};
+			name = Debug;
+		};
+		E83DBA05AD53949813AE50F8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		6786897F88ABA7337529A917 /* Build configuration list for PBXNativeTarget "InkTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				56B4B50F688BFC6D41EB7699 /* Debug */,
+				23605F0317AC919D0492C7CC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		95224DE6E757423E6B5F6CBD /* Build configuration list for PBXProject "Ink" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0C28196472A1537A43461A23 /* Debug */,
+				E83DBA05AD53949813AE50F8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EAE436EA7080CA8595DC963D /* Build configuration list for PBXNativeTarget "Ink" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3C40C075D14A4D05AA2D1E03 /* Debug */,
+				4E2638ED4C3B2CA6A85E0BB6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		DE8C24BADEE2BA60080F3AAB /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BB2A4D9722BF92B444B92F6E /* KeyboardShortcuts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DE8C24BADEE2BA60080F3AAB /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
+			productName = KeyboardShortcuts;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 1AC8DF0946DDDC5284848660 /* Project object */;
+}

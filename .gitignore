@@ -27,10 +27,17 @@ DerivedData/
 .swiftpm/
 Package.resolved
 
-# Generated Xcode project (we use xcodegen)
-Ink.xcodeproj/
-!Ink.xcodeproj/project.pbxproj
-!Ink.xcodeproj/xcshareddata/
+# Generated Xcode project metadata kept for open-in-Xcode onboarding.
+!Ink/Ink.xcodeproj/
+!Ink/Ink.xcodeproj/project.pbxproj
+!Ink/Ink.xcodeproj/project.xcworkspace/
+!Ink/Ink.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+!Ink/Ink.xcodeproj/project.xcworkspace/xcshareddata/
+!Ink/Ink.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+!Ink/Ink.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+!Ink/Ink.xcodeproj/xcshareddata/
+!Ink/Ink.xcodeproj/xcshareddata/xcschemes/
+!Ink/Ink.xcodeproj/xcshareddata/xcschemes/Ink.xcscheme
 
 # Build artifacts / test builds
 Ink Builds/

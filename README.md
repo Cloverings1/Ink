@@ -106,41 +106,32 @@ In-memory title + content index for fast browse/search — no database lock-in i
 ```bash
 git clone https://github.com/Cloverings1/Ink.git
 cd Ink
+open Ink/Ink.xcodeproj
 ```
 
-1. Open **Xcode** → **Create a new Project** → **macOS** → **App**
-2. Name: **Ink** · Interface: **SwiftUI** · Language: **Swift**
-3. Save inside the repo’s `Ink/` folder
-4. Delete Xcode’s default `InkApp.swift`, `ContentView.swift`, and placeholder assets
-5. Drag the repo’s `Ink/` source folder into the project navigator (**Create groups**, add to target)
-6. Add package dependency: `https://github.com/sindresorhus/KeyboardShortcuts`
-7. Configure the target:
-   - **Deployment Target:** macOS 14.0+
-   - **Info → `LSUIElement`:** `YES`
-   - **URL Types → Schemes:** `ink`
-8. Press **⌘R**
+Press **⌘R** in Xcode. You should get a menu bar extra, no main window, and **⌥⌘N** summoning the panel.
 
-You should get a menu bar extra, no main window, and **⌥⌘N** summoning the panel.
+To verify from Terminal:
+
+```bash
+xcodebuild test -project Ink/Ink.xcodeproj -scheme Ink -destination 'platform=macOS,arch=arm64'
+```
 
 <details>
-<summary><strong>Full Xcode setup checklist</strong></summary>
+<summary><strong>Project generation checklist</strong></summary>
 
 <br/>
 
-**Project creation**
-- Xcode 16+ recommended
-- Product Name: **Ink**
-- Organization Identifier: e.g. `com.yourname`
-- Uncheck Core Data. The repo includes an `InkTests` target for persistence coverage.
+The generated Xcode project is checked in for open-in-Xcode onboarding. `Ink/project.yml` remains the source used to regenerate it.
 
-**Replace generated files**
-- Copy all Swift sources from this repo’s `Ink/` folder into your project
+**Regenerate after project-structure changes**
 
-**KeyboardShortcuts (required)**
-- File → Add Package Dependencies…
-- URL: `https://github.com/sindresorhus/KeyboardShortcuts`
-- Version: Up to Next Major (2.x)
-- Add to the Ink target
+```bash
+cd Ink
+xcodegen generate --spec project.yml
+cd ..
+git diff -- Ink/project.yml Ink/Ink.xcodeproj
+```
 
 **Target configuration**
 - General → Deployment Target: macOS 14.0 (Sonoma)+
@@ -156,7 +147,7 @@ You should get a menu bar extra, no main window, and **⌥⌘N** summoning the p
 **Build & run**
 - ⌘R — app launches with no main window (expected)
 - Press ⌥⌘N to verify the floating panel
-- Run `xcodebuild test -project Ink.xcodeproj -scheme Ink -destination 'platform=macOS'` to verify persistence behavior
+- Run `xcodebuild test -project Ink/Ink.xcodeproj -scheme Ink -destination 'platform=macOS,arch=arm64'` to verify persistence behavior
 
 </details>
 

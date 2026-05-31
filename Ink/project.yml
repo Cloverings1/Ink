@@ -58,6 +58,7 @@ targets:
     # into the test artifacts folder the user requested.
     postBuildScripts:
       - name: "Copy Release Build to Test Folder"
+        basedOnDependencyAnalysis: false
         script: |
           if [ "${CONFIGURATION}" = "Release" ]; then
             # Portable path (relative to the project) so no absolute user paths
