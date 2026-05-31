@@ -206,6 +206,41 @@ final class NoteStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testOversizedMarkdownFileIsNotImported() throws {
+        let oversized = tempRoot.appendingPathComponent("oversized.md")
+        try "This file exceeds the tiny test limit".write(to: oversized, atomically: true, encoding: .utf8)
+
+        let store = NoteStore(
+            notesDirectory: tempRoot,
+            importLimits: .init(maxNoteCount: 10, maxFileBytes: 8, maxTotalBytes: 1024)
+        )
+
+        XCTAssertTrue(store.notes.isEmpty)
+        XCTAssertTrue(store.searchNotes(query: "exceeds").isEmpty)
+    }
+
+    @MainActor
+    func testImportStopsAtNoteCountLimit() throws {
+        try "First".write(
+            to: tempRoot.appendingPathComponent("first.md"),
+            atomically: true,
+            encoding: .utf8
+        )
+        try "Second".write(
+            to: tempRoot.appendingPathComponent("second.md"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let store = NoteStore(
+            notesDirectory: tempRoot,
+            importLimits: .init(maxNoteCount: 1, maxFileBytes: 1024, maxTotalBytes: 1024)
+        )
+
+        XCTAssertEqual(store.notes.count, 1)
+    }
+
+    @MainActor
     func testExternalDeletionRemovesCleanNote() throws {
         let store = NoteStore(notesDirectory: tempRoot)
         let note = try XCTUnwrap(store.createNewNote())

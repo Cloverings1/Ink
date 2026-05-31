@@ -14,12 +14,25 @@ final class NoteStore: ObservableObject {
         case failed(String)
     }
 
+    struct ImportLimits: Equatable {
+        var maxNoteCount: Int
+        var maxFileBytes: Int64
+        var maxTotalBytes: Int64
+
+        static let `default` = ImportLimits(
+            maxNoteCount: 5_000,
+            maxFileBytes: 10 * 1024 * 1024,
+            maxTotalBytes: 100 * 1024 * 1024
+        )
+    }
+
     @Published private(set) var notes: [Note] = []
     @Published private(set) var currentNoteID: UUID?
     @Published private(set) var notesDirectory: URL
     @Published private(set) var saveState: SaveState = .idle
 
     private var searchIndex: [UUID: String] = [:]
+    private let importLimits: ImportLimits
     private let fileManager: FileManager
     private let trashItem: (URL) throws -> Void
     private var pendingSaveWorkItems: [UUID: DispatchWorkItem] = [:]
@@ -31,16 +44,20 @@ final class NoteStore: ObservableObject {
     private static let noteResourceKeys: Set<URLResourceKey> = [
         .creationDateKey,
         .contentModificationDateKey,
+        .fileSizeKey,
         .isRegularFileKey,
         .isSymbolicLinkKey
     ]
 
     private enum NoteImportError: Error, CustomStringConvertible {
         case unsafeFile(URL, String)
+        case importLimit(URL, String)
 
         var description: String {
             switch self {
             case let .unsafeFile(url, reason):
+                return "Skipped \(url.lastPathComponent): \(reason)"
+            case let .importLimit(url, reason):
                 return "Skipped \(url.lastPathComponent): \(reason)"
             }
         }
@@ -53,11 +70,13 @@ final class NoteStore: ObservableObject {
 
     init(
         notesDirectory: URL? = nil,
+        importLimits: ImportLimits = .default,
         fileManager: FileManager = .default,
         trashItem: @escaping (URL) throws -> Void = { url in
             _ = try FileManager.default.trashItem(at: url, resultingItemURL: nil)
         }
     ) {
+        self.importLimits = importLimits
         self.fileManager = fileManager
         self.trashItem = trashItem
 
@@ -312,11 +331,27 @@ final class NoteStore: ObservableObject {
         .filter { $0.pathExtension.lowercased() == "md" }
 
         var loaded: [Note] = []
+        var importedBytes: Int64 = 0
 
         for url in urls {
             do {
+                guard loaded.count < importLimits.maxNoteCount else {
+                    throw NoteImportError.importLimit(url, "note import count limit reached")
+                }
+
                 let resourceValues = try validateNoteFile(at: url)
+                let fileBytes = Int64(resourceValues.fileSize ?? 0)
+
+                guard fileBytes <= importLimits.maxFileBytes else {
+                    throw NoteImportError.importLimit(url, "file is larger than the note import size limit")
+                }
+
+                guard importedBytes + fileBytes <= importLimits.maxTotalBytes else {
+                    throw NoteImportError.importLimit(url, "notes folder exceeds the aggregate import size limit")
+                }
+
                 loaded.append(try readNote(at: url, resourceValues: resourceValues))
+                importedBytes += fileBytes
             } catch {
                 recordFailure("Could not load note at \(url.path)", error: error)
             }
