@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import CryptoKit
 import os
 
 /// Manages all notes as plain .md files in a user-chosen directory.
@@ -173,15 +174,14 @@ final class NoteStore: ObservableObject {
 
         for url in urls {
             do {
-                let canonicalURL = try canonicalNoteURL(for: url)
-                let content = try String(contentsOf: canonicalURL, encoding: .utf8)
-                let attrs = try? canonicalURL.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
+                let content = try String(contentsOf: url, encoding: .utf8)
+                let attrs = try? url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
 
                 let note = Note(
-                    id: try Self.noteID(from: canonicalURL),
+                    id: noteID(for: url),
                     title: Note.deriveTitle(from: content),
                     content: content,
-                    fileURL: canonicalURL,
+                    fileURL: url,
                     createdAt: attrs?.creationDate ?? Date(),
                     updatedAt: attrs?.contentModificationDate ?? Date()
                 )
@@ -260,29 +260,39 @@ final class NoteStore: ObservableObject {
         })
     }
 
-    private func canonicalNoteURL(for url: URL) throws -> URL {
-        if (try? Self.noteID(from: url)) != nil {
-            return url
+    private func noteID(for url: URL) -> UUID {
+        let name = url.deletingPathExtension().lastPathComponent
+        if name.hasPrefix("note-") {
+            let rawID = String(name.dropFirst("note-".count))
+            if let id = UUID(uuidString: rawID) {
+                return id
+            }
         }
 
-        let id = UUID()
-        let newURL = notesDirectory.appendingPathComponent("note-\(id.uuidString).md")
-        try fileManager.moveItem(at: url, to: newURL)
-        Self.logger.info("Migrated note filename from \(url.lastPathComponent, privacy: .public) to \(newURL.lastPathComponent, privacy: .public)")
-        return newURL
+        return Self.deterministicID(for: relativeNotePath(for: url))
     }
 
-    private static func noteID(from url: URL) throws -> UUID {
-        let name = url.deletingPathExtension().lastPathComponent
-        guard name.hasPrefix("note-") else {
-            throw CocoaError(.fileReadCorruptFile)
+    private func relativeNotePath(for url: URL) -> String {
+        let folderPath = notesDirectory.standardizedFileURL.path
+        let filePath = url.standardizedFileURL.path
+        let prefix = folderPath.hasSuffix("/") ? folderPath : folderPath + "/"
+        if filePath.hasPrefix(prefix) {
+            return String(filePath.dropFirst(prefix.count))
         }
+        return url.lastPathComponent
+    }
 
-        let rawID = String(name.dropFirst("note-".count))
-        guard let id = UUID(uuidString: rawID) else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-        return id
+    private static func deterministicID(for path: String) -> UUID {
+        let digest = SHA256.hash(data: Data(path.utf8))
+        let bytes = Array(digest.prefix(16))
+        let uuid = uuid_t(
+            bytes[0], bytes[1], bytes[2], bytes[3],
+            bytes[4], bytes[5],
+            bytes[6], bytes[7],
+            bytes[8], bytes[9],
+            bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
+        )
+        return UUID(uuid: uuid)
     }
 
     private func recordFailure(_ message: String, error: Error) {

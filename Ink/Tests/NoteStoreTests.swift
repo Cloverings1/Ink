@@ -71,17 +71,24 @@ final class NoteStoreTests: XCTestCase {
         XCTAssertTrue(store.notes.isEmpty)
     }
 
-    func testExistingNotesMigrateToStableNoteFilenames() throws {
-        let legacy = tempRoot.appendingPathComponent("untitled-abcd1234.md")
-        try "Legacy content".write(to: legacy, atomically: true, encoding: .utf8)
+    func testExistingMarkdownFilesKeepTheirFilenames() throws {
+        let existing = tempRoot.appendingPathComponent("meeting-notes.md")
+        try "Existing content".write(to: existing, atomically: true, encoding: .utf8)
 
         let store = NoteStore(notesDirectory: tempRoot)
 
         XCTAssertEqual(store.notes.count, 1)
         let note = try XCTUnwrap(store.notes.first)
-        XCTAssertTrue(note.fileURL.lastPathComponent.hasPrefix("note-"))
-        XCTAssertEqual(try String(contentsOf: note.fileURL, encoding: .utf8), "Legacy content")
-        XCTAssertFalse(FileManager.default.fileExists(atPath: legacy.path))
+        XCTAssertEqual(note.fileURL.lastPathComponent, "meeting-notes.md")
+        XCTAssertEqual(try String(contentsOf: note.fileURL, encoding: .utf8), "Existing content")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: existing.path))
+        let filenames = try FileManager.default.contentsOfDirectory(atPath: tempRoot.path)
+        XCTAssertFalse(filenames.contains { $0.hasPrefix("note-") })
+
+        store.selectNote(id: note.id)
+        store.updateCurrentNoteContent("Updated in place")
+        store.flushPendingSaves()
+        XCTAssertEqual(try String(contentsOf: existing, encoding: .utf8), "Updated in place")
 
         let reloaded = NoteStore(notesDirectory: tempRoot)
         XCTAssertEqual(reloaded.notes.first?.id, note.id)
