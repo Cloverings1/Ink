@@ -3,26 +3,6 @@ import XCTest
 
 final class AppDelegateTests: XCTestCase {
     @MainActor
-    func testLaunchPanelAutoShowsOnlyForFirstRunWelcomeWithoutExternalURL() {
-        XCTAssertTrue(AppDelegate.shouldShowPanelOnLaunch(
-            createdWelcomeNote: true,
-            receivedExternalURL: false
-        ))
-        XCTAssertFalse(AppDelegate.shouldShowPanelOnLaunch(
-            createdWelcomeNote: false,
-            receivedExternalURL: false
-        ))
-        XCTAssertFalse(AppDelegate.shouldShowPanelOnLaunch(
-            createdWelcomeNote: true,
-            receivedExternalURL: true
-        ))
-        XCTAssertFalse(AppDelegate.shouldShowPanelOnLaunch(
-            createdWelcomeNote: false,
-            receivedExternalURL: true
-        ))
-    }
-
-    @MainActor
     func testDeepLinkRouteParsesStrictAllowedRoutes() throws {
         let uuid = try XCTUnwrap(UUID(uuidString: "11111111-1111-1111-1111-111111111111"))
 

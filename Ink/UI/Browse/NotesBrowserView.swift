@@ -210,7 +210,6 @@ struct NoteRow: View {
             // Quick actions (copy deep link + delete) — icons only like screenshot
             HStack(spacing: 4) {
                 Button {
-                    // Copy deep link (we'll implement in polish)
                     let link = "ink://note/\(note.id.uuidString)"
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(link, forType: .string)

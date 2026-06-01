@@ -101,7 +101,7 @@
    </AnalyzeAction>
    <ArchiveAction
       buildConfiguration = "Release"
-      customArchiveName = "Ink 1.1"
+      customArchiveName = "Ink 1.2"
       revealArchiveInOrganizer = "YES">
    </ArchiveAction>
 </Scheme>

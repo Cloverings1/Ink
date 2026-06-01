@@ -46,7 +46,7 @@ final class FloatingNotePanel: NSPanel {
 
         // Host the SwiftUI content
         let hostingView = NSHostingView(rootView: content())
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        hostingView.autoresizingMask = [.width, .height]
         self.contentView = hostingView
 
         // Nice rounded corners + subtle shadow (the screenshots have a soft modern look)

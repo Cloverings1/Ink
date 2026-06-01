@@ -7,17 +7,15 @@ struct InkApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        // We intentionally provide NO WindowGroup.
-        // The app is a pure hotkey + floating panel + optional menu bar experience (LSUIElement).
-        // All UI lives inside the custom NSPanel managed by FloatingPanelController.
+        // No WindowGroup — all UI lives inside the custom NSPanel.
+        // The app has a Dock icon + menu bar extra + floating panel.
         Settings {
-            // Future Settings window (polish phase)
             SettingsView()
         }
     }
 }
 
-// MARK: - App Delegate (the real "main" for a floating panel app)
+// MARK: - App Delegate
 
 enum DeepLinkRoute: Equatable {
     case create
@@ -32,7 +30,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) var noteStore: NoteStore?
     private var panelController: FloatingPanelController?
 
-    // Optional menu bar extra so users can still interact when the panel is hidden
     private var statusItem: NSStatusItem?
     private var didReceiveExternalURL = false
     private var pendingDeepLinks: [URL] = []
@@ -42,21 +39,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         guard !Self.isRunningUnitTests else { return }
 
-        // 1. Create the data layer (plain .md files)
+        // 1. Data layer
         let store = NoteStore()
         noteStore = store
 
-        // 2. Create the panel controller (owns hotkeys + the NSPanel)
+        // 2. Floating panel + hotkeys
         panelController = FloatingPanelController(noteStore: store)
 
-        // 3. Create a minimal, elegant menu bar icon
+        // 3. Menu bar extra
         setupMenuBarExtra()
 
-        // 4. On first launch, create a welcome note so the app feels alive immediately
-        var createdWelcomeNote = false
+        // 4. First-run welcome note
         if noteStore?.notes.isEmpty == true {
             if noteStore?.createNewNote() != nil {
-                createdWelcomeNote = true
                 let content = """
                 # Welcome to Ink
 
@@ -79,23 +74,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         drainPendingDeepLinks()
 
-        // 5. Show only the first-run welcome note automatically. Existing private notes
-        // stay hidden until the user presses a hotkey, uses the menu, or accepts a link.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            if Self.shouldShowPanelOnLaunch(
-                createdWelcomeNote: createdWelcomeNote,
-                receivedExternalURL: self.didReceiveExternalURL
-            ) {
-                self.panelController?.showEditor()
-            }
+        // 5. Show the panel on every launch (brief delay for setup)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            guard !self.didReceiveExternalURL else { return }
+            self.panelController?.showEditor()
         }
 
-        print("Ink launched — global hotkeys registered via KeyboardShortcuts.")
+        print("Ink launched — Dock icon + menu bar extra + global hotkeys.")
     }
 
-    static func shouldShowPanelOnLaunch(createdWelcomeNote: Bool, receivedExternalURL: Bool) -> Bool {
-        createdWelcomeNote && !receivedExternalURL
+    // MARK: - Dock icon clicked (app reopened)
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        panelController?.showEditor()
+        return true
     }
+
+    // MARK: - Deeplink routing
 
     static func deepLinkRoute(for url: URL) -> DeepLinkRoute {
         guard url.scheme?.lowercased() == "ink" else { return .ignored }
@@ -120,36 +115,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
 
+    // MARK: - Menu bar extra
+
     private func setupMenuBarExtra() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         guard let button = statusItem?.button else { return }
 
-        // Simple elegant "ink drop" symbol
         button.image = NSImage(systemSymbolName: "drop.fill", accessibilityDescription: "Ink")
         button.toolTip = "Ink — Quick Notes"
+        button.action = #selector(menuBarAction)
+        button.target = self
+    }
 
+    @objc private func menuBarAction() {
+        guard let event = NSApp.currentEvent else {
+            panelController?.showEditor()
+            return
+        }
+
+        if event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
+            showContextMenu()
+        } else {
+            panelController?.showEditor()
+        }
+    }
+
+    private func showContextMenu() {
         let menu = NSMenu()
-        menu.addItem(shortcutItem(title: "Create Note (⌥⌘N)", action: #selector(createNote), key: "n"))
-        menu.addItem(shortcutItem(title: "Browse Notes (⌥⌘P)", action: #selector(browseNotes), key: "p"))
-        menu.addItem(shortcutItem(title: "Action Panel (⌥⌘K)", action: #selector(showActions), key: "k"))
+        menu.addItem(withTitle: "New Note", action: #selector(createNote), keyEquivalent: "n")
+        menu.addItem(withTitle: "Browse Notes", action: #selector(browseNotes), keyEquivalent: "p")
+        menu.addItem(withTitle: "Action Panel", action: #selector(showActions), keyEquivalent: "k")
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Settings...", action: #selector(openSettings(_:)), keyEquivalent: ","))
+        menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit Ink", action: #selector(quit), keyEquivalent: "q"))
+        menu.addItem(withTitle: "Quit Ink", action: #selector(quit), keyEquivalent: "q")
 
-        // Wire targets
         for item in menu.items {
             item.target = self
         }
 
-        button.menu = menu
+        guard let button = statusItem?.button else { return }
+        menu.popUp(positioning: nil, at: .zero, in: button)
     }
 
-    private func shortcutItem(title: String, action: Selector, key: String) -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
-        item.keyEquivalentModifierMask = [.option, .command]
-        return item
-    }
+    // MARK: - Actions
 
     @objc private func createNote() {
         panelController?.createAndShow()
@@ -163,9 +172,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panelController?.showActionPanel()
     }
 
-    @objc private func openSettings(_ sender: Any?) {
+    @objc private func openSettings() {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: sender)
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
 
     @objc private func quit() {
@@ -178,7 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return .terminateNow
     }
 
-    // MARK: - URL Scheme Handling (ink://note/UUID and ink://create)
+    // MARK: - URL Scheme Handling
 
     func application(_ application: NSApplication, open urls: [URL]) {
         didReceiveExternalURL = true
@@ -284,7 +293,8 @@ struct SettingsView: View {
 
             Spacer()
 
-            Text("Ink v0.1  •  Made for thinking at the speed of thought")
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+            Text("Ink \(version)  •  Made for thinking at the speed of thought")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }

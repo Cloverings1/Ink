@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0F7143270EA4BDB26746204B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8D3C78544D29FEF78762B069 /* Assets.xcassets */; };
+		14B01F9E342F4C377D5750C5 /* AppDelegateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ACFF89B3F2EC9FF9A551190 /* AppDelegateTests.swift */; };
 		18E719155395CD6FD6EC9559 /* NotesBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC143C327FE2B414AA0660AA /* NotesBrowserView.swift */; };
 		197D525C5767121D5DECBD20 /* NoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1646080C5D3F15694E3C1A58 /* NoteStore.swift */; };
 		2D7BD990D9C69594C94AA8B1 /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 936A0BC9BC178F2B2BF4E920 /* Note.swift */; };
@@ -15,13 +16,12 @@
 		4003FA2F5867F862DF9B7D09 /* InkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB154B9C1F66359005CA6F2A /* InkApp.swift */; };
 		5CD0A20F211523A2CEE90CDF /* FloatingPanelRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83A9B16630B7CF09AC1DF79A /* FloatingPanelRootView.swift */; };
 		5EBBE28352F0D92D5BF32D99 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = BB2A4D9722BF92B444B92F6E /* KeyboardShortcuts */; };
-		2AC2A6149956A8D125C093E2 /* FloatingPanelControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83BCF1127350CD65CBC3887F /* FloatingPanelControllerTests.swift */; };
 		7923B9183CCC68778EDFCF73 /* FloatingNotePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 804A5B68DC36F96C06413AFA /* FloatingNotePanel.swift */; };
 		A1E39A694CE9D5A436994153 /* NoteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A289CB181D3963AF8F10843 /* NoteStoreTests.swift */; };
 		A8DBDBB54460A501BBD0CB32 /* FloatingPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74DBECA606A2C7A54EC6E0DB /* FloatingPanelController.swift */; };
 		B3FE4386EBCA6CCE6CD2772B /* ActionPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA8E8B48C75255D85DDFF48 /* ActionPanelView.swift */; };
 		B9CCBF0B6992C38BFE5D3A75 /* InkEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D947B9AF31776274D60003 /* InkEditorView.swift */; };
-		C3A32C8B1C4C8B4B803CC313 /* AppDelegateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0790444043108C748863C72 /* AppDelegateTests.swift */; };
+		DA6D27D3B9C913771D67F961 /* FloatingPanelControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDAA98E2055A70D9822864DE /* FloatingPanelControllerTests.swift */; };
 		DEB93AE7FB34605877F5E754 /* KeyboardShortcuts+Ink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38BE4FFB225AA4BD13C83FCF /* KeyboardShortcuts+Ink.swift */; };
 /* End PBXBuildFile section */
 
@@ -38,6 +38,7 @@
 /* Begin PBXFileReference section */
 		14E67513D7ED347458AA50DD /* InkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1646080C5D3F15694E3C1A58 /* NoteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteStore.swift; sourceTree = "<group>"; };
+		2ACFF89B3F2EC9FF9A551190 /* AppDelegateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegateTests.swift; sourceTree = "<group>"; };
 		38BE4FFB225AA4BD13C83FCF /* KeyboardShortcuts+Ink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardShortcuts+Ink.swift"; sourceTree = "<group>"; };
 		3EA8E8B48C75255D85DDFF48 /* ActionPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionPanelView.swift; sourceTree = "<group>"; };
 		560F8A160920F3DEC461B2B6 /* Ink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ink.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -46,11 +47,10 @@
 		74DBECA606A2C7A54EC6E0DB /* FloatingPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanelController.swift; sourceTree = "<group>"; };
 		804A5B68DC36F96C06413AFA /* FloatingNotePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingNotePanel.swift; sourceTree = "<group>"; };
 		83A9B16630B7CF09AC1DF79A /* FloatingPanelRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanelRootView.swift; sourceTree = "<group>"; };
-		83BCF1127350CD65CBC3887F /* FloatingPanelControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanelControllerTests.swift; sourceTree = "<group>"; };
 		8D3C78544D29FEF78762B069 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		936A0BC9BC178F2B2BF4E920 /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
-		A0790444043108C748863C72 /* AppDelegateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegateTests.swift; sourceTree = "<group>"; };
 		CC143C327FE2B414AA0660AA /* NotesBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesBrowserView.swift; sourceTree = "<group>"; };
+		EDAA98E2055A70D9822864DE /* FloatingPanelControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanelControllerTests.swift; sourceTree = "<group>"; };
 		EFE07C077DDB8F684A9B4225 /* Ink.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Ink.icns; sourceTree = "<group>"; };
 		FB154B9C1F66359005CA6F2A /* InkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InkApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -189,8 +189,8 @@
 		ECB8E9CB155E5DCE02D80300 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
-				A0790444043108C748863C72 /* AppDelegateTests.swift */,
-				83BCF1127350CD65CBC3887F /* FloatingPanelControllerTests.swift */,
+				2ACFF89B3F2EC9FF9A551190 /* AppDelegateTests.swift */,
+				EDAA98E2055A70D9822864DE /* FloatingPanelControllerTests.swift */,
 				5A289CB181D3963AF8F10843 /* NoteStoreTests.swift */,
 			);
 			path = Tests;
@@ -314,8 +314,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C3A32C8B1C4C8B4B803CC313 /* AppDelegateTests.swift in Sources */,
-				2AC2A6149956A8D125C093E2 /* FloatingPanelControllerTests.swift in Sources */,
+				14B01F9E342F4C377D5750C5 /* AppDelegateTests.swift in Sources */,
+				DA6D27D3B9C913771D67F961 /* FloatingPanelControllerTests.swift in Sources */,
 				A1E39A694CE9D5A436994153 /* NoteStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -438,16 +438,15 @@
 				CODE_SIGN_ENTITLEMENTS = Ink.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_LSUIElement = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jonasbubela.Ink;
 				PRODUCT_NAME = Ink;
 				SDKROOT = macosx;
@@ -462,16 +461,15 @@
 				CODE_SIGN_ENTITLEMENTS = Ink.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_LSUIElement = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jonasbubela.Ink;
 				PRODUCT_NAME = Ink;
 				SDKROOT = macosx;
