@@ -64,6 +64,11 @@ final class FloatingNotePanel: NSPanel {
     /// Close when user clicks outside (or switches Spaces in certain ways)
     override func resignKey() {
         super.resignKey()
+        // Don't tear the panel down while the app is presenting its own modal
+        // (e.g. an NSSavePanel/NSOpenPanel run from inside the panel). During
+        // runModal(), NSApp.modalWindow is non-nil, so the panel survives the
+        // resign and the user isn't dumped out of Ink when the dialog closes.
+        if NSApp.modalWindow != nil { return }
         onDismissRequest?()
     }
 

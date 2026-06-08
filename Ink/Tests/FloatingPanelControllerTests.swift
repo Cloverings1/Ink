@@ -58,4 +58,39 @@ final class FloatingPanelControllerTests: XCTestCase {
         XCTAssertNil(controller.externalLinkRequest)
         XCTAssertEqual(controller.mode, .editor)
     }
+
+    @MainActor
+    func testClampedFrameKeepsFrameFullyOnScreen() throws {
+        guard let main = NSScreen.main else {
+            throw XCTSkip("No main screen available in this environment")
+        }
+        let visible = main.visibleFrame
+
+        // Deliberately oversized AND far offscreen so we exercise both the
+        // size-min clamp and the origin clamp. Pin to the main screen so the
+        // result is deterministic on multi-monitor machines (a zero-overlap
+        // frame would otherwise resolve to an arbitrary screen).
+        let offscreen = NSRect(
+            x: visible.maxX + 5000,
+            y: visible.maxY + 5000,
+            width: visible.width + 1000,
+            height: visible.height + 1000
+        )
+
+        let clamped = FloatingPanelController.clampedFrame(
+            offscreen,
+            screens: [main],
+            fallback: main
+        )
+
+        // Size never exceeds the visible area.
+        XCTAssertLessThanOrEqual(clamped.width, visible.width)
+        XCTAssertLessThanOrEqual(clamped.height, visible.height)
+
+        // Origin keeps the (clamped) frame fully within the visible area.
+        XCTAssertGreaterThanOrEqual(clamped.minX, visible.minX)
+        XCTAssertGreaterThanOrEqual(clamped.minY, visible.minY)
+        XCTAssertLessThanOrEqual(clamped.maxX, visible.maxX)
+        XCTAssertLessThanOrEqual(clamped.maxY, visible.maxY)
+    }
 }
