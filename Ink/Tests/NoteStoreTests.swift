@@ -321,4 +321,77 @@ final class NoteStoreTests: XCTestCase {
         XCTAssertEqual(store.currentNote?.fileURL.standardizedFileURL, conflict.standardizedFileURL)
     }
 
+    @MainActor
+    func testNonUTF8ExternalEditIsPreservedAndOriginalBytesUntouched() throws {
+        let store = NoteStore(notesDirectory: tempRoot)
+        let note = try XCTUnwrap(store.createNewNote())
+        store.updateCurrentNoteContent("# Baseline\nValid UTF-8 content")
+        store.flushPendingSaves()
+
+        // An external editor writes non-UTF-8 / invalid bytes over the file.
+        let rawBytes = Data([0xFF, 0xFE, 0x00, 0x01])
+        try rawBytes.write(to: note.fileURL, options: .atomic)
+
+        // Ink has a pending local edit and tries to autosave.
+        store.updateCurrentNoteContent("Ink local edit over invalid bytes")
+        store.flushPendingSaves()
+
+        // The original file's raw bytes must be untouched (not overwritten).
+        let onDisk = try Data(contentsOf: note.fileURL)
+        XCTAssertEqual(onDisk, rawBytes)
+
+        let markdownFiles = try FileManager.default.contentsOfDirectory(
+            at: tempRoot,
+            includingPropertiesForKeys: nil
+        )
+        .filter { $0.pathExtension == "md" }
+
+        // Original + one new conflict copy.
+        XCTAssertEqual(markdownFiles.count, 2)
+        let conflict = try XCTUnwrap(markdownFiles.first { $0.lastPathComponent.contains("Ink conflict") })
+        XCTAssertEqual(
+            try String(contentsOf: conflict, encoding: .utf8),
+            "Ink local edit over invalid bytes"
+        )
+
+        // The save state reflects a preserved conflict rather than a clean save.
+        XCTAssertEqual(store.saveState, .failed("External edit preserved; Ink copy saved"))
+    }
+
+    @MainActor
+    func testPreserveConflictReloadsExternalContentIntoOriginalNote() throws {
+        let store = NoteStore(notesDirectory: tempRoot)
+        let note = try XCTUnwrap(store.createNewNote())
+        store.updateCurrentNoteContent("# Baseline\nInk content")
+        store.flushPendingSaves()
+
+        // A UTF-8 external edit lands on disk.
+        try "# External\nEdited elsewhere".write(to: note.fileURL, atomically: true, encoding: .utf8)
+
+        // Ink has a pending local edit and tries to autosave.
+        store.updateCurrentNoteContent("Ink pending edit")
+        store.flushPendingSaves()
+
+        // The original on-disk file now holds the external content (untouched by Ink).
+        XCTAssertEqual(
+            try String(contentsOf: note.fileURL, encoding: .utf8),
+            "# External\nEdited elsewhere"
+        )
+
+        // The in-memory original note was reloaded to the external content...
+        let original = try XCTUnwrap(store.notes.first { $0.id == note.id })
+        XCTAssertEqual(original.content, "# External\nEdited elsewhere")
+
+        // ...and a conflict copy holds the user's pending Ink edit and is now current.
+        let markdownFiles = try FileManager.default.contentsOfDirectory(
+            at: tempRoot,
+            includingPropertiesForKeys: nil
+        )
+        .filter { $0.pathExtension == "md" }
+        XCTAssertEqual(markdownFiles.count, 2)
+        let conflict = try XCTUnwrap(markdownFiles.first { $0.lastPathComponent.contains("Ink conflict") })
+        XCTAssertEqual(try String(contentsOf: conflict, encoding: .utf8), "Ink pending edit")
+        XCTAssertEqual(store.currentNote?.content, "Ink pending edit")
+    }
+
 }

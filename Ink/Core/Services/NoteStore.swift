@@ -39,6 +39,17 @@ final class NoteStore: ObservableObject {
     private var pendingSaveSnapshots: [UUID: Note] = [:]
     private var lastKnownDiskContent: [UUID: String] = [:]
 
+    /// Per-file metadata signature cache, keyed by standardized fileURL.
+    /// Lets `reconcileExternalChanges()` skip full-content reads for files
+    /// whose (modification date, size) are unchanged since the last scan.
+    private var fileSignatures: [URL: FileSignature] = [:]
+    private var refreshTimer: Timer?
+
+    private struct FileSignature: Equatable {
+        let modified: Date
+        let size: Int
+    }
+
     private static let logger = Logger(subsystem: "com.jonasbubela.Ink", category: "NoteStore")
     private static let notesDirectoryKey = "notesDirectoryPath"
     private static let noteResourceKeys: Set<URLResourceKey> = [
@@ -95,6 +106,27 @@ final class NoteStore: ObservableObject {
         } catch {
             recordFailure("Could not load notes from \(self.notesDirectory.path)", error: error)
         }
+
+        startWatching()
+    }
+
+    deinit {
+        refreshTimer?.invalidate()
+    }
+
+    /// Starts a lightweight repeating poll that pulls clean external edits into
+    /// the UI between panel shows. Reconcile is metadata-cheap (FIX #6) and skips
+    /// dirty (pending-save) notes, so this no-ops when nothing changed and never
+    /// spawns conflict copies for clean external edits.
+    private func startWatching() {
+        refreshTimer?.invalidate()
+        let timer = Timer(timeInterval: 1.5, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.reconcileExternalChanges()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        refreshTimer = timer
     }
 
     var currentNote: Note? {
@@ -215,7 +247,10 @@ final class NoteStore: ObservableObject {
     }
 
     func loadNotes() throws {
-        var loaded = try readNotesFromDisk()
+        // Full reload: drop any cached signatures so every file is read fresh
+        // and the cache is reseeded from scratch.
+        fileSignatures.removeAll()
+        var loaded = try readNotesFromDisk(reusingInMemory: false)
         loaded = notesByResolvingDuplicateIDs(loaded)
 
         loaded.sort { $0.updatedAt > $1.updatedAt }
@@ -230,7 +265,7 @@ final class NoteStore: ObservableObject {
 
     func reconcileExternalChanges() {
         do {
-            let diskNotes = notesByResolvingDuplicateIDs(try readNotesFromDisk())
+            let diskNotes = notesByResolvingDuplicateIDs(try readNotesFromDisk(reusingInMemory: true))
             let diskByID = Dictionary(uniqueKeysWithValues: diskNotes.map { ($0.id, $0) })
             let dirtyIDs = Set(pendingSaveSnapshots.keys)
 
@@ -311,19 +346,35 @@ final class NoteStore: ObservableObject {
 
     private func persist(_ note: Note) {
         do {
-            if let baseline = lastKnownDiskContent[note.id],
-               let diskContent = try? String(contentsOf: note.fileURL, encoding: .utf8),
-               diskContent != baseline {
-                try preserveConflict(for: note, originalDiskContent: diskContent)
-                saveState = .failed("External edit preserved; Ink copy saved")
-                return
-            }
+            if let baseline = lastKnownDiskContent[note.id] {
+                let fileExists = fileManager.fileExists(atPath: note.fileURL.path)
+                let diskData = try? Data(contentsOf: note.fileURL)
 
-            if lastKnownDiskContent[note.id] != nil,
-               !fileManager.fileExists(atPath: note.fileURL.path) {
-                try preserveDirtyDeletedNote(note)
-                saveState = .failed("Deleted note preserved as Ink copy")
-                return
+                if fileExists, let diskData {
+                    // Compare RAW BYTES so a non-UTF-8 external edit (which still
+                    // reads as non-nil Data) is detected and never overwritten.
+                    if diskData != Data(baseline.utf8) {
+                        try preserveConflict(
+                            for: note,
+                            originalDiskContent: String(decoding: diskData, as: UTF8.self)
+                        )
+                        saveState = .failed("External edit preserved; Ink copy saved")
+                        return
+                    }
+                    // Bytes equal the baseline → safe to fall through to the write.
+                } else if fileExists {
+                    // File is present but unreadable (transient IO/permission error).
+                    // Do NOT overwrite: save the pending content as a conflict copy and
+                    // leave the original bytes alone.
+                    try preserveUnreadableConflict(note)
+                    saveState = .failed("Existing file unreadable; Ink copy saved")
+                    return
+                } else {
+                    // File was deleted out from under Ink while we had pending content.
+                    try preserveDirtyDeletedNote(note)
+                    saveState = .failed("Deleted note preserved as Ink copy")
+                    return
+                }
             }
 
             try writeNoteToDisk(note)
@@ -340,9 +391,35 @@ final class NoteStore: ObservableObject {
         try Self.ensureDirectoryExists(at: note.fileURL.deletingLastPathComponent(), fileManager: fileManager)
         let data = note.content.data(using: .utf8) ?? Data()
         try data.write(to: note.fileURL, options: .atomic)
+        // Record the post-write signature so the next reconcile does not need to
+        // re-read Ink's own writes (and conflict copies route through here too).
+        recordSignature(for: note.fileURL)
     }
 
-    private func readNotesFromDisk() throws -> [Note] {
+    /// Canonical cache key for a note file. `contentsOfDirectory` URLs are not
+    /// pre-standardized, so every signature read/write must funnel through this
+    /// to guarantee dictionary hits.
+    private func signatureKey(for url: URL) -> URL {
+        url.standardizedFileURL
+    }
+
+    private func signature(from resourceValues: URLResourceValues) -> FileSignature? {
+        guard let modified = resourceValues.contentModificationDate else { return nil }
+        return FileSignature(modified: modified, size: resourceValues.fileSize ?? 0)
+    }
+
+    @discardableResult
+    private func recordSignature(for url: URL) -> FileSignature? {
+        guard let resourceValues = try? url.resourceValues(
+            forKeys: [.contentModificationDateKey, .fileSizeKey]
+        ), let sig = signature(from: resourceValues) else {
+            return nil
+        }
+        fileSignatures[signatureKey(for: url)] = sig
+        return sig
+    }
+
+    private func readNotesFromDisk(reusingInMemory: Bool) throws -> [Note] {
         try Self.ensureDirectoryExists(at: notesDirectory, fileManager: fileManager)
 
         let urls = try fileManager.contentsOfDirectory(
@@ -351,6 +428,12 @@ final class NoteStore: ObservableObject {
             options: [.skipsHiddenFiles]
         )
         .filter { $0.pathExtension.lowercased() == "md" }
+
+        // Index existing in-memory notes by canonical fileURL so we can reuse a
+        // note's already-loaded content when its on-disk signature is unchanged.
+        let inMemoryByURL: [URL: Note] = reusingInMemory
+            ? Dictionary(notes.map { (signatureKey(for: $0.fileURL), $0) }, uniquingKeysWith: { first, _ in first })
+            : [:]
 
         var loaded: [Note] = []
         var importedBytes: Int64 = 0
@@ -372,7 +455,28 @@ final class NoteStore: ObservableObject {
                     throw NoteImportError.importLimit(url, "notes folder exceeds the aggregate import size limit")
                 }
 
+                let key = signatureKey(for: url)
+                let currentSignature = signature(from: resourceValues)
+
+                // Reuse path: signature matches the cache AND a matching in-memory
+                // note exists AND it has a recorded disk baseline. Reproduce exactly
+                // what a full read would yield (recomputed id + derived title +
+                // baseline content) but skip String(contentsOf:).
+                if reusingInMemory,
+                   let cached = fileSignatures[key],
+                   let current = currentSignature,
+                   cached == current,
+                   let existing = inMemoryByURL[key],
+                   let baseline = lastKnownDiskContent[existing.id] {
+                    loaded.append(try reusedNote(at: url, content: baseline, resourceValues: resourceValues))
+                    importedBytes += fileBytes
+                    continue
+                }
+
                 loaded.append(try readNote(at: url, resourceValues: resourceValues))
+                if let currentSignature {
+                    fileSignatures[key] = currentSignature
+                }
                 importedBytes += fileBytes
             } catch {
                 recordFailure("Could not load note at \(url.path)", error: error)
@@ -380,6 +484,21 @@ final class NoteStore: ObservableObject {
         }
 
         return loaded
+    }
+
+    /// Builds a Note for a file whose content is already known (unchanged on
+    /// disk), byte-identical to what `readNote(at:resourceValues:)` would produce
+    /// for the same content — so duplicate resolution and reconcile merge behave
+    /// the same whether or not the read was skipped.
+    private func reusedNote(at url: URL, content: String, resourceValues: URLResourceValues) throws -> Note {
+        Note(
+            id: noteID(for: url),
+            title: Note.deriveTitle(from: content),
+            content: content,
+            fileURL: url,
+            createdAt: resourceValues.creationDate ?? Date(),
+            updatedAt: resourceValues.contentModificationDate ?? Date()
+        )
     }
 
     private func validateNoteFile(at url: URL) throws -> URLResourceValues {
@@ -422,11 +541,33 @@ final class NoteStore: ObservableObject {
 
     private func preserveConflict(for note: Note, originalDiskContent: String) throws {
         let wasCurrent = currentNoteID == note.id
+
+        // Perform the fallible write FIRST. If it throws, no in-memory state or
+        // baseline has been mutated yet, so the next retry still detects the
+        // external edit and re-runs conflict preservation (FIX #8).
+        let conflict = try createConflictCopy(from: note)
+
         let reloadedOriginal = try reloadedNote(for: note, content: originalDiskContent)
         updateInMemory(reloadedOriginal)
         lastKnownDiskContent[note.id] = originalDiskContent
 
+        notes.append(conflict)
+        lastKnownDiskContent[conflict.id] = conflict.content
+        if wasCurrent {
+            currentNoteID = conflict.id
+        }
+        rebuildSearchIndex()
+    }
+
+    /// Preserves the user's pending content when the original file is present but
+    /// unreadable. Writes a NEW conflict copy and leaves the original (and its
+    /// in-memory note) untouched, so even unreadable bytes are never destroyed.
+    private func preserveUnreadableConflict(_ note: Note) throws {
+        let wasCurrent = currentNoteID == note.id
+
+        // Fallible write first; nothing else has been mutated if this throws.
         let conflict = try createConflictCopy(from: note)
+
         notes.append(conflict)
         lastKnownDiskContent[conflict.id] = conflict.content
         if wasCurrent {
