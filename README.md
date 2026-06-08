@@ -74,6 +74,10 @@ Notes live as individual `.md` files (default: `~/Library/Application Support/In
 
 In-memory title + content index for fast browse/search — no database lock-in in v1.
 
+### 📋 Clipboard history
+
+The menu-bar icon keeps your last **25** copied text snippets (right/control-click → **Clipboard History**). Pick one to put it back on the clipboard. Password-manager and other concealed/sensitive copies are never recorded.
+
 </td>
 </tr>
 </table>
