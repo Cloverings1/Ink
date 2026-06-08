@@ -8,7 +8,7 @@ struct InkApp: App {
 
     var body: some Scene {
         // No WindowGroup — all UI lives inside the custom NSPanel.
-        // The app has a Dock icon + menu bar extra + floating panel.
+        // The app has a menu bar extra + floating panel (utility app style).
         Settings {
             SettingsView()
         }
@@ -31,7 +31,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panelController: FloatingPanelController?
 
     private var statusItem: NSStatusItem?
-    private var didReceiveExternalURL = false
     private var pendingDeepLinks: [URL] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -74,16 +73,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         drainPendingDeepLinks()
 
-        // 5. Show the panel on every launch (brief delay for setup)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            guard !self.didReceiveExternalURL else { return }
-            self.panelController?.showEditor()
-        }
-
-        print("Ink launched — Dock icon + menu bar extra + global hotkeys.")
+        print("Ink launched — menu bar extra + global hotkeys.")
     }
 
-    // MARK: - Dock icon clicked (app reopened)
+    // MARK: - App reopened from activation path
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         panelController?.showEditor()
@@ -190,7 +183,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - URL Scheme Handling
 
     func application(_ application: NSApplication, open urls: [URL]) {
-        didReceiveExternalURL = true
         for url in urls {
             handleDeepLink(url)
         }

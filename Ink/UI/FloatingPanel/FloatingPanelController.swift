@@ -71,6 +71,7 @@ final class FloatingPanelController: ObservableObject {
 
     // Last known frame so we can restore position
     private var lastFrame: NSRect?
+    private var panelLayoutObservers: [NSObjectProtocol] = []
 
     init(noteStore: NoteStore) {
         self.noteStore = noteStore
@@ -207,6 +208,7 @@ final class FloatingPanelController: ObservableObject {
         noteStore.flushPendingSaves()
         externalLinkRequest = nil
         isActionPanelPresented = false
+        stopObservingPanelLayout()
         panel?.close()
         panel = nil   // we recreate on next show (cheap and avoids state issues)
     }
@@ -227,6 +229,8 @@ final class FloatingPanelController: ObservableObject {
             .environmentObject(self)
             .environmentObject(noteStore)
 
+        stopObservingPanelLayout()
+
         panel = FloatingNotePanel {
             rootView
         }
@@ -243,25 +247,29 @@ final class FloatingPanelController: ObservableObject {
             panel?.center()
         }
 
-        // Observe when the user manually moves/resizes so we remember it
-        NotificationCenter.default.addObserver(
+        // Observe when the user manually moves/resizes so we remember it.
+        // Keep observer tokens so this reliably stays connected to the current panel instance.
+        let moveObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didMoveNotification,
             object: panel,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in
-                self?.lastFrame = self?.panel?.frame
-            }
+            self?.lastFrame = self?.panel?.frame
         }
-        NotificationCenter.default.addObserver(
+        let resizeObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didResizeNotification,
             object: panel,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in
-                self?.lastFrame = self?.panel?.frame
-            }
+            self?.lastFrame = self?.panel?.frame
         }
+
+        panelLayoutObservers = [moveObserver, resizeObserver]
+    }
+
+    private func stopObservingPanelLayout() {
+        panelLayoutObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        panelLayoutObservers.removeAll()
     }
 
     private func positionPanelIfNeeded() {

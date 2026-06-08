@@ -35,7 +35,7 @@ final class FloatingNotePanel: NSPanel {
         self.isFloatingPanel = true
         self.level = .floating
         self.hidesOnDeactivate = false          // Important: stays visible when you click other apps
-        self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
         // Interaction
         self.isMovableByWindowBackground = true

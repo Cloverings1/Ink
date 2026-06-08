@@ -35,10 +35,11 @@ targets:
         SWIFT_VERSION: "6.0"
         CODE_SIGN_STYLE: Automatic
         ENABLE_HARDENED_RUNTIME: YES
-        # Regular app with Dock icon and menu bar extra
+    # Utility app with menu bar extra and floating panel (no Dock icon)
     info:
       path: Info.plist
       properties:
+        LSUIElement: true
         CFBundleName: Ink
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"

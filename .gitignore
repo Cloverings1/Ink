@@ -86,3 +86,6 @@ UserInterfaceState.xcuserstate
 # Optional: keep the generated project in git for convenience
 # (many teams do this with xcodegen so contributors can open immediately)
 # If you prefer not to commit the .xcodeproj, uncomment the lines above.
+
+# Parallel work worktrees (orchestration)
+.worktrees/

@@ -145,7 +145,7 @@ git diff -- Ink/project.yml Ink/Ink.xcodeproj
 - Master `.icns` at `Ink/Resources/Icons/Ink.icns`
 
 **Build & run**
-- ⌘R — app launches with no main window (expected)
+- ⌘R — app launches without a main window or floating panel (expected)
 - Press ⌥⌘N to verify the floating panel
 - Run `xcodebuild test -project Ink/Ink.xcodeproj -scheme Ink -destination 'platform=macOS,arch=arm64'` to verify persistence behavior
 
