@@ -29,9 +29,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private(set) var noteStore: NoteStore?
     private var panelController: FloatingPanelController?
+    private var clipboardHistory: ClipboardHistoryStore?
 
     private var statusItem: NSStatusItem?
     private var pendingDeepLinks: [URL] = []
+    private var settingsBridgeHost: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.shared = self
@@ -41,6 +43,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 1. Data layer
         let store = NoteStore()
         noteStore = store
+
+        // 1b. Clipboard history (polls the system pasteboard for the app lifetime)
+        let clip = ClipboardHistoryStore()
+        clipboardHistory = clip
+        clip.start()
+
+        // 1c. Hidden SwiftUI host to capture the `openSettings` environment action.
+        installSettingsBridgeHost()
 
         // 2. Floating panel + hotkeys
         panelController = FloatingPanelController(noteStore: store)
@@ -118,6 +128,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.toolTip = "Ink — Quick Notes"
         button.action = #selector(menuBarAction)
         button.target = self
+        // NSStatusBarButton only sends on left-mouse-up by default; opt in to
+        // right-mouse-up so control/right-click reaches `menuBarAction`.
+        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
     }
 
     @objc private func menuBarAction() {
@@ -139,6 +152,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Browse Notes", action: #selector(browseNotes), keyEquivalent: "p")
         menu.addItem(withTitle: "Action Panel", action: #selector(showActions), keyEquivalent: "k")
         menu.addItem(.separator())
+
+        let clipboardItem = NSMenuItem(title: "Clipboard History", action: nil, keyEquivalent: "")
+        clipboardItem.submenu = makeClipboardHistorySubmenu()
+        menu.addItem(clipboardItem)
+
+        menu.addItem(.separator())
         menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Ink", action: #selector(quit), keyEquivalent: "q")
@@ -149,6 +168,56 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         guard let button = statusItem?.button else { return }
         menu.popUp(positioning: nil, at: .zero, in: button)
+    }
+
+    private func makeClipboardHistorySubmenu() -> NSMenu {
+        let submenu = NSMenu()
+        let entries = clipboardHistory?.entries ?? []
+
+        if entries.isEmpty {
+            let empty = NSMenuItem(title: "No clipboard history yet", action: nil, keyEquivalent: "")
+            empty.isEnabled = false
+            submenu.addItem(empty)
+            return submenu
+        }
+
+        for entry in entries.prefix(25) {
+            let item = NSMenuItem(
+                title: Self.previewTitle(for: entry.text),
+                action: #selector(copyClipboardEntry(_:)),
+                keyEquivalent: ""
+            )
+            item.toolTip = entry.text
+            item.representedObject = entry.id
+            item.target = self
+            submenu.addItem(item)
+        }
+
+        submenu.addItem(.separator())
+        let clear = NSMenuItem(
+            title: "Clear Clipboard History",
+            action: #selector(clearClipboardHistory),
+            keyEquivalent: ""
+        )
+        clear.target = self
+        submenu.addItem(clear)
+
+        return submenu
+    }
+
+    /// Single-line, trimmed, ~50-char preview of an entry for the menu title.
+    private static func previewTitle(for text: String) -> String {
+        let flattened = text
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "\t", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let limit = 50
+        if flattened.count > limit {
+            return String(flattened.prefix(limit)) + "…"
+        }
+        return flattened
     }
 
     // MARK: - Actions
@@ -165,9 +234,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panelController?.showActionPanel()
     }
 
+    @objc private func copyClipboardEntry(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? UUID,
+              let entry = clipboardHistory?.entries.first(where: { $0.id == id }) else {
+            return
+        }
+        clipboardHistory?.copyToClipboard(entry)
+    }
+
+    @objc private func clearClipboardHistory() {
+        clipboardHistory?.clearHistory()
+    }
+
     @objc private func openSettings() {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+
+        // Prefer the captured SwiftUI `openSettings` action (reliable on macOS
+        // 14/15); fall back to the private selector so behavior never regresses
+        // if the bridge action is a no-op on some OS version.
+        if let open = SettingsOpener.shared.action {
+            open()
+        } else {
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        }
+    }
+
+    /// Creates a tiny, off-screen, always-alive SwiftUI host whose `.onAppear`
+    /// captures `@Environment(\.openSettings)` into `SettingsOpener.shared`.
+    private func installSettingsBridgeHost() {
+        guard settingsBridgeHost == nil else { return }
+
+        let window = NSWindow(
+            contentRect: NSRect(x: -10_000, y: -10_000, width: 1, height: 1),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.alphaValue = 0
+        window.ignoresMouseEvents = true
+        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        window.contentView = NSHostingView(rootView: SettingsBridgeView())
+        // Order it on screen (off-screen frame) so SwiftUI runs `.onAppear`.
+        window.orderFrontRegardless()
+
+        settingsBridgeHost = window
     }
 
     @objc private func quit() {
@@ -214,6 +325,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for url in urls {
             handleDeepLink(url)
         }
+    }
+}
+
+// MARK: - Settings open bridge (#9)
+
+/// Holds the captured SwiftUI `openSettings` environment action so AppKit menu
+/// handlers can open the Settings scene reliably on macOS 14/15.
+@MainActor
+final class SettingsOpener {
+    static let shared = SettingsOpener()
+    var action: (() -> Void)?
+    private init() {}
+}
+
+/// A zero-cost SwiftUI view that captures `@Environment(\.openSettings)` once it
+/// appears and stores it in `SettingsOpener.shared`.
+private struct SettingsBridgeView: View {
+    @Environment(\.openSettings) private var openSettings
+
+    var body: some View {
+        Color.clear
+            .frame(width: 1, height: 1)
+            .onAppear {
+                SettingsOpener.shared.action = { openSettings() }
+            }
     }
 }
 

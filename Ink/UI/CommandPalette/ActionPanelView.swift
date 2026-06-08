@@ -221,13 +221,14 @@ struct ActionPanelView: View {
         guard panel.runModal() == .OK, let destination = panel.url else { return }
 
         do {
-            if FileManager.default.fileExists(atPath: destination.path) {
-                try FileManager.default.removeItem(at: destination)
-            }
-            try FileManager.default.copyItem(at: note.fileURL, to: destination)
+            let data = try Data(contentsOf: note.fileURL)
+            try data.write(to: destination, options: .atomic)   // atomic replace, no pre-delete
         } catch {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(note.content, forType: .string)
+            let alert = NSAlert()
+            alert.messageText = "Export Failed"
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
         }
     }
 }

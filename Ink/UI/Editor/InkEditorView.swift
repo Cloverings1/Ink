@@ -53,9 +53,9 @@ struct InkEditorView: View {
                 onCode: { insert("`", "`") },
                 onLink: { insert("[", "](url)") },
                 onHeading: { level in insertHeading(level) },
-                onBulletList: { insert("- ", "") },
-                onNumberedList: { insert("1. ", "") },
-                onMore: { /* Future: open extra actions */ }
+                onBulletList: { insertLinePrefix(bulleted: true) },
+                onNumberedList: { insertLinePrefix(bulleted: false) },
+                onMore: { controller.showActionPanel() }
             )
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -76,14 +76,19 @@ struct InkEditorView: View {
         let selectedText = (text as NSString).substring(with: selectedRange)
 
         let newText = prefix + selectedText + suffix
-        let newSelectedRange = NSRange(location: selectedRange.location + prefix.count,
-                                       length: selectedText.count)
+        let newSelectedRange = NSRange(location: selectedRange.location + (prefix as NSString).length,
+                                       length: (selectedText as NSString).length)
 
         text = (text as NSString).replacingCharacters(in: selectedRange, with: newText)
 
         // Restore selection inside the newly wrapped text
         DispatchQueue.main.async {
-            textView.setSelectedRange(newSelectedRange)
+            // Clamp to the textview's current length — the string may not have synced yet
+            // (e.g. a brand-new empty note), which would make the range out of bounds.
+            let maxLen = (textView.string as NSString).length
+            let location = max(0, min(newSelectedRange.location, maxLen))
+            let length = max(0, min(newSelectedRange.length, maxLen - location))
+            textView.setSelectedRange(NSRange(location: location, length: length))
         }
     }
 
@@ -104,7 +109,78 @@ struct InkEditorView: View {
         text = nsText.replacingCharacters(in: insertionPoint, with: prefix)
 
         DispatchQueue.main.async {
-            textView.setSelectedRange(NSRange(location: lineStart + prefix.count, length: 0))
+            // Clamp to the textview's current length in case the string hasn't synced yet.
+            let maxLen = (textView.string as NSString).length
+            let location = max(0, min(lineStart + (prefix as NSString).length, maxLen))
+            textView.setSelectedRange(NSRange(location: location, length: 0))
+        }
+    }
+
+    /// Anchors a list marker at the START of every line covered by the selection
+    /// (or the caret's line when the selection is empty), so it always produces
+    /// valid Markdown instead of wrapping at the caret.
+    /// - `bulleted: true`  → prepends `- ` to each line.
+    /// - `bulleted: false` → prepends an incrementing `1. `, `2. `, … to each line.
+    private func insertLinePrefix(bulleted: Bool) {
+        guard let textView = findTextView() else {
+            // Fallback: just prepend a single marker at the very start.
+            text = (bulleted ? "- " : "1. ") + text
+            return
+        }
+
+        let selectedRange = textView.selectedRange
+        let nsText = text as NSString
+        let selEnd = selectedRange.location + selectedRange.length
+
+        // Collect the start location of every line touched by the selection.
+        var lineStarts: [Int] = []
+        var index = selectedRange.location
+        while true {
+            var lineStart = 0
+            var lineEnd = 0
+            nsText.getLineStart(&lineStart, end: &lineEnd, contentsEnd: nil,
+                                for: NSRange(location: index, length: 0))
+            lineStarts.append(lineStart)
+            // Advance to the next line. Stop once we pass the selection's end,
+            // make no forward progress, or reach the end of the string.
+            if lineEnd <= index || lineEnd > selEnd || lineEnd >= nsText.length {
+                break
+            }
+            index = lineEnd
+        }
+
+        // Build the per-line prefixes (numbered markers vary in width: "10. ").
+        let prefixes: [String] = lineStarts.indices.map { i in
+            bulleted ? "- " : "\(i + 1). "
+        }
+
+        // Insert from the LAST line to the FIRST so earlier offsets stay valid.
+        let mutable = NSMutableString(string: text)
+        for i in stride(from: lineStarts.count - 1, through: 0, by: -1) {
+            mutable.insert(prefixes[i], at: lineStarts[i])
+        }
+        text = mutable as String
+
+        // Total UTF-16 units inserted, for restoring the selection.
+        let totalInserted = prefixes.reduce(0) { $0 + ($1 as NSString).length }
+        let firstLineStart = lineStarts.first ?? selectedRange.location
+        let firstPrefixLen = (prefixes.first.map { ($0 as NSString).length }) ?? 0
+
+        let restored: NSRange
+        if selectedRange.length == 0 {
+            // Empty selection → drop the caret after the first marker so the user can type.
+            restored = NSRange(location: firstLineStart + firstPrefixLen, length: 0)
+        } else {
+            // Non-empty → keep the whole prefixed block selected.
+            restored = NSRange(location: firstLineStart, length: selEnd + totalInserted - firstLineStart)
+        }
+
+        DispatchQueue.main.async {
+            // Clamp to the textview's current length in case the string hasn't synced yet.
+            let maxLen = (textView.string as NSString).length
+            let location = max(0, min(restored.location, maxLen))
+            let length = max(0, min(restored.length, maxLen - location))
+            textView.setSelectedRange(NSRange(location: location, length: length))
         }
     }
 
@@ -155,23 +231,24 @@ struct EditorToolbar: View {
             }
             .menuStyle(.borderlessButton)
             .frame(width: 42)
+            .accessibilityLabel("Heading")
 
             Divider().frame(height: 18)
 
-            toolbarButton("bold", action: onBold)
-            toolbarButton("italic", action: onItalic)
-            toolbarButton("strikethrough", action: onStrikethrough)
-            toolbarButton("underline", action: onUnderline)
+            toolbarButton("bold", "Bold", action: onBold)
+            toolbarButton("italic", "Italic", action: onItalic)
+            toolbarButton("strikethrough", "Strikethrough", action: onStrikethrough)
+            toolbarButton("underline", "Underline", action: onUnderline)
 
             Divider().frame(height: 18)
 
-            toolbarButton("curlybraces", action: onCode)           // code
-            toolbarButton("link", action: onLink)
+            toolbarButton("curlybraces", "Code", action: onCode)           // code
+            toolbarButton("link", "Link", action: onLink)
 
             Divider().frame(height: 18)
 
-            toolbarButton("list.bullet", action: onBulletList)
-            toolbarButton("list.number", action: onNumberedList)
+            toolbarButton("list.bullet", "Bullet List", action: onBulletList)
+            toolbarButton("list.number", "Numbered List", action: onNumberedList)
 
             Spacer()
 
@@ -182,19 +259,22 @@ struct EditorToolbar: View {
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 6)
+            .help("More actions (⌥⌘K)")
+            .accessibilityLabel("More actions")
         }
         .buttonStyle(.plain)
         .foregroundStyle(.secondary)
         .font(.system(size: 14))
     }
 
-    private func toolbarButton(_ systemName: String, action: @escaping () -> Void) -> some View {
+    private func toolbarButton(_ systemName: String, _ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 13, weight: .semibold))
                 .frame(width: 28, height: 24)
         }
-        .help(systemName.capitalized)
+        .help(label)
+        .accessibilityLabel(label)
     }
 }
 

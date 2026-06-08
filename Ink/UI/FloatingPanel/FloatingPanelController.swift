@@ -240,9 +240,9 @@ final class FloatingPanelController: ObservableObject {
             }
         }
 
-        // Restore previous position if we have one
+        // Restore previous position if we have one (clamped fully onscreen).
         if let frame = lastFrame {
-            panel?.setFrame(frame, display: true)
+            panel?.setFrame(Self.clampedFrame(frame), display: true)
         } else {
             panel?.center()
         }
@@ -272,24 +272,33 @@ final class FloatingPanelController: ObservableObject {
         panelLayoutObservers.removeAll()
     }
 
+    /// Clamps a frame so it sits fully within the screen it overlaps most.
+    /// Guards against a panel landing mostly offscreen after a display
+    /// resolution/scaling change, docking/Sidecar, or multi-monitor shuffle.
+    static func clampedFrame(_ frame: NSRect,
+                             screens: [NSScreen] = NSScreen.screens,
+                             fallback: NSScreen? = NSScreen.main) -> NSRect {
+        let target = screens.max(by: {
+            $0.frame.intersection(frame).width * $0.frame.intersection(frame).height
+                < $1.frame.intersection(frame).width * $1.frame.intersection(frame).height
+        }) ?? fallback
+        guard let visible = target?.visibleFrame else { return frame }
+        var f = frame
+        f.size.width = min(f.width, visible.width)
+        f.size.height = min(f.height, visible.height)
+        f.origin.x = min(max(f.minX, visible.minX), visible.maxX - f.width)
+        f.origin.y = min(max(f.minY, visible.minY), visible.maxY - f.height)
+        return f
+    }
+
     private func positionPanelIfNeeded() {
         guard let panel = panel else { return }
 
         if lastFrame == nil {
             panel.center()
         } else if let frame = lastFrame {
-            // Keep the same size, just make sure it's still on screen
-            var newFrame = frame
-            if let screen = NSScreen.main {
-                let visible = screen.visibleFrame
-                if !visible.contains(newFrame.origin) {
-                    newFrame.origin = CGPoint(
-                        x: visible.midX - newFrame.width / 2,
-                        y: visible.midY - newFrame.height / 2
-                    )
-                }
-            }
-            panel.setFrame(newFrame, display: true)
+            // Keep the same size, just make sure it's fully on screen.
+            panel.setFrame(Self.clampedFrame(frame), display: true)
         }
     }
 }

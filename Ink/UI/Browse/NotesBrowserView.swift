@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// The "Browse Notes" experience (⌥⌘P).
 /// Matches the exact layout and typography from the provided screenshot:
@@ -47,11 +48,12 @@ struct NotesBrowserView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Button {
-                    // Info about notes (future)
+                    NSWorkspace.shared.activateFileViewerSelecting([noteStore.notesDirectory])
                 } label: {
                     Image(systemName: "info.circle")
                 }
                 .buttonStyle(.plain)
+                .help("Reveal notes folder in Finder")
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 4)
@@ -111,11 +113,15 @@ struct NotesBrowserView: View {
             deleteSelectedNote()
         }
         .background(
-            Button("") {
-                copySelectedDeeplink()
+            Group {
+                if !controller.isActionPanelPresented {
+                    Button("") {
+                        copySelectedDeeplink()
+                    }
+                    .keyboardShortcut("d", modifiers: [.shift, .command])
+                    .hidden()
+                }
             }
-            .keyboardShortcut("d", modifiers: [.shift, .command])
-            .hidden()
         )
     }
 
@@ -247,9 +253,13 @@ struct NoteRow: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .short
+        return f
+    }()
+
     private func relativeDate(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
-        return formatter.localizedString(for: date, relativeTo: Date())
+        return Self.relativeFormatter.localizedString(for: date, relativeTo: Date())
     }
 }
