@@ -43,7 +43,10 @@ final class NoteStore: ObservableObject {
     /// Lets `reconcileExternalChanges()` skip full-content reads for files
     /// whose (modification date, size) are unchanged since the last scan.
     private var fileSignatures: [URL: FileSignature] = [:]
-    private var refreshTimer: Timer?
+    // `nonisolated(unsafe)`: set on the main actor in `startWatching()`, fired on
+    // `RunLoop.main`, and read in `deinit` only once no other references remain —
+    // so there is no concurrent access. This lets the nonisolated deinit invalidate it.
+    nonisolated(unsafe) private var refreshTimer: Timer?
 
     private struct FileSignature: Equatable {
         let modified: Date

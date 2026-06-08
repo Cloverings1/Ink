@@ -254,14 +254,20 @@ final class FloatingPanelController: ObservableObject {
             object: panel,
             queue: .main
         ) { [weak self] _ in
-            self?.lastFrame = self?.panel?.frame
+            // `.main` queue guarantees main-thread delivery, so it is safe to assert
+            // main-actor isolation and capture the frame synchronously.
+            MainActor.assumeIsolated {
+                self?.lastFrame = self?.panel?.frame
+            }
         }
         let resizeObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didResizeNotification,
             object: panel,
             queue: .main
         ) { [weak self] _ in
-            self?.lastFrame = self?.panel?.frame
+            MainActor.assumeIsolated {
+                self?.lastFrame = self?.panel?.frame
+            }
         }
 
         panelLayoutObservers = [moveObserver, resizeObserver]
