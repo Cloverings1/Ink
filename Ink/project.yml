@@ -51,7 +51,6 @@ targets:
       path: Ink.entitlements
       properties:
         com.apple.security.app-sandbox: false
-        com.apple.security.files.user-selected.read-write: true
 
     # Post-build script: automatically copies the signed Release build
     # into the test artifacts folder the user requested.
@@ -70,9 +69,8 @@ targets:
 
             cp -R "${BUILT_PRODUCTS_DIR}/Ink.app" "$DEST_APP"
 
-            # If the build wasn't signed with a real Developer ID/team, apply an
-            # ad-hoc signature so the copied app launches locally without the
-            # "damaged or incomplete" Gatekeeper error.
+            # Local convenience only. Public distribution should use a signed
+            # and notarized release artifact rather than this copied app.
             if ! codesign -dv "$DEST_APP" >/dev/null 2>&1; then
               codesign --force --deep --sign - "$DEST_APP" || true
             fi

@@ -292,10 +292,10 @@ export const variants: VariantConfig[] = [
   {
     id: 21,
     slug: 'v21',
-    name: 'Premium First',
-    tagline: 'Pricing-led hero',
+    name: 'Roadmap First',
+    tagline: 'Roadmap-led hero',
     accent: 'gold',
-    heroLayout: 'pricing-first',
+    heroLayout: 'roadmap-first',
     featureLayout: 'compact',
     navStyle: 'floating',
     buttonStyle: 'pill',

@@ -314,7 +314,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"${CONFIGURATION}\" = \"Release\" ]; then\n  # Portable path (relative to the project) so no absolute user paths\n  # leak into the public repo.\n  DEST_DIR=\"${SRCROOT}/../Ink Builds/Ink builds/${MARKETING_VERSION}\"\n  DEST_APP=\"$DEST_DIR/Ink-${MARKETING_VERSION}.app\"\n\n  mkdir -p \"$DEST_DIR\"\n  rm -rf \"$DEST_APP\"\n\n  cp -R \"${BUILT_PRODUCTS_DIR}/Ink.app\" \"$DEST_APP\"\n\n  # If the build wasn't signed with a real Developer ID/team, apply an\n  # ad-hoc signature so the copied app launches locally without the\n  # \"damaged or incomplete\" Gatekeeper error.\n  if ! codesign -dv \"$DEST_APP\" >/dev/null 2>&1; then\n    codesign --force --deep --sign - \"$DEST_APP\" || true\n  fi\n  xattr -dr com.apple.quarantine \"$DEST_APP\" 2>/dev/null || true\n\n  echo \"✅ Successfully copied build to:\"\n  echo \"   $DEST_APP\"\n  echo \"\"\n  echo \"You can now launch it from that location.\"\nfi\n";
+			shellScript = "if [ \"${CONFIGURATION}\" = \"Release\" ]; then\n  # Portable path (relative to the project) so no absolute user paths\n  # leak into the public repo.\n  DEST_DIR=\"${SRCROOT}/../Ink Builds/Ink builds/${MARKETING_VERSION}\"\n  DEST_APP=\"$DEST_DIR/Ink-${MARKETING_VERSION}.app\"\n\n  mkdir -p \"$DEST_DIR\"\n  rm -rf \"$DEST_APP\"\n\n  cp -R \"${BUILT_PRODUCTS_DIR}/Ink.app\" \"$DEST_APP\"\n\n  # Local convenience only. Public distribution should use a signed\n  # and notarized release artifact rather than this copied app.\n  if ! codesign -dv \"$DEST_APP\" >/dev/null 2>&1; then\n    codesign --force --deep --sign - \"$DEST_APP\" || true\n  fi\n  xattr -dr com.apple.quarantine \"$DEST_APP\" 2>/dev/null || true\n\n  echo \"✅ Successfully copied build to:\"\n  echo \"   $DEST_APP\"\n  echo \"\"\n  echo \"You can now launch it from that location.\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -419,7 +419,7 @@
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -561,7 +561,7 @@
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};

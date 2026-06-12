@@ -53,10 +53,10 @@ export const steps = [
   },
 ] as const
 
-export const premiumFeatures = [
-  'Priority sync & backup to your cloud of choice',
-  'Custom themes & panel chrome',
-  'Unlimited notes & workspaces',
-  'Early access builds & direct support',
-  'Team sharing (coming soon)',
+export const roadmapItems = [
+  'Signed and notarized public release builds',
+  'Optional syntax highlighting for raw Markdown',
+  'Theme controls that keep the panel native',
+  'File-watching for edits made in other apps',
+  'Import/export polish for larger note collections',
 ] as const

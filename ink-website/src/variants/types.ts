@@ -1,4 +1,4 @@
-export type HeroLayout = 'centered' | 'split' | 'minimal' | 'pricing-first' | 'spotlight'
+export type HeroLayout = 'centered' | 'split' | 'minimal' | 'roadmap-first' | 'spotlight'
 export type FeatureLayout = 'grid' | 'bento' | 'list' | 'compact'
 export type NavStyle = 'glass' | 'minimal' | 'bordered' | 'floating'
 export type ButtonStyle = 'pill' | 'square' | 'ghost'

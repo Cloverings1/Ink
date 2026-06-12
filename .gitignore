@@ -74,6 +74,8 @@ fastlane/test_output
 # Agent / assistant context docs (kept local, not published to the public repo)
 AGENTS.md
 CLAUDE.md
+.claude/
+**/.claude/
 
 # Local backups / archives
 *.tar.gz

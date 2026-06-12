@@ -19,7 +19,7 @@ Open [http://localhost:5173](http://localhost:5173).
 
 **Production homepage:** `/ink/` uses the **Timeline** variant (`v22`).
 
-**Public URL:** [https://www.krevo.io/ink](https://www.krevo.io/ink) (proxied from the `graphite` project).
+**Public URL:** [https://www.krevo.io/ink](https://www.krevo.io/ink), when the production proxy is configured to route `/ink/*` to this Vite build.
 
 ## Deploy to Vercel
 
@@ -33,7 +33,7 @@ npx vercel --prod   # production
 
 If the Git repo root is the parent `ink/` folder, set **Root Directory** to `ink-website` in the Vercel project settings.
 
-The app is built with Vite `base: '/ink/'`. The **graphite** (`krevo.io`) project rewrites `/ink` and `/ink/*` to this deployment — redeploy **both** `ink-website` and `graphite` after routing changes.
+The app is built with Vite `base: '/ink/'`. After routing changes, redeploy this site and the production proxy that serves `/ink` and `/ink/*`.
 
 ## Variants
 
@@ -63,7 +63,7 @@ The app is built with Vite `base: '/ink/'`. The **graphite** (`krevo.io`) projec
 | `/v18` | Command — palette hero |
 | `/v19` | Spotlight — search-bar hero |
 | `/v20` | Matrix — dot texture |
-| `/v21` | Premium First — pricing-led |
+| `/v21` | Roadmap First — roadmap-led |
 | `/v22` | Timeline — process vertical |
 | `/v23` | Geometric — angular split |
 | `/v24` | Frost — ice overlay |
